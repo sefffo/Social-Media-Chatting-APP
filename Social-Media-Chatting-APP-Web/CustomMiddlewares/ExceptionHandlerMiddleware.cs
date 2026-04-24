@@ -2,7 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Social_Media_Chatting_APP_Service.Exceptions;
 
-namespace Social_Media_APP_Web.CustomMiddlewares;
+namespace Social_Media_Chatting_APP_Web.CustomMiddlewares;
 
 public class ExceptionHandlerMiddleware(
     RequestDelegate next,

@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
-using Social_Media_APP_Web.CustomMiddlewares;
 using Social_Media_Chatting_APP_Persistence.DbContext;
 using Social_Media_Chatting_APP_Persistence.DI;
 using Social_Media_Chatting_APP_Service.Common;
-using Social_Media_Chatting_APP_Web.Extensions;
+using Social_Media_Chatting_APP_Web.CustomMiddlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,7 +33,12 @@ builder.Services.AddPersistenceServicesRegistration();
 #endregion
 
 
+#region SignalR Registeration
 
+builder.Services.AddSignalR()
+    .AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!);
+
+#endregion
 
 
 var app = builder.Build();
