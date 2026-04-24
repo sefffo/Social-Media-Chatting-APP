@@ -9,13 +9,12 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database=ChatAppDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=ChatAppDb;Username=postgres;Password=${DB_PASSWORD}
       - ConnectionStrings__Redis=redis:6379
       - Jwt__Key=${JWT_KEY}
       - Jwt__Issuer=ChatApp
       - Jwt__Audience=ChatAppUsers
     volumes:
-      # Persist user uploaded files (images, attachments) across container restarts
       - uploads_data:/app/wwwroot/uploads
     depends_on:
       db:
@@ -27,24 +26,24 @@ services:
     restart: unless-stopped
 
   db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: postgres:16-alpine
     container_name: chatapp-db
     environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=ChatAppDb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     ports:
-      - "1433:1433"
+      - "5432:5432"
     volumes:
-      # Persist SQL Server data across container restarts
-      - sqlserver_data:/var/opt/mssql
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - chatapp-network
     healthcheck:
-      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${DB_PASSWORD}", "-Q", "SELECT 1", "-No"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ChatAppDb"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 20s
     restart: unless-stopped
 
   redis:
@@ -53,7 +52,6 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      # Persist Redis data (cached messages, presence data) across container restarts
       - redis_data:/data
     networks:
       - chatapp-network
@@ -65,14 +63,10 @@ services:
     command: redis-server --appendonly yes
     restart: unless-stopped
 
-# =============================================
-# Named Volumes — all persistent data lives here
-# Docker manages these on the host machine
-# =============================================
 volumes:
-  sqlserver_data:    # SQL Server database files
-  redis_data:        # Redis AOF persistence
-  uploads_data:      # User uploaded files (wwwroot/uploads)
+  postgres_data:   # PostgreSQL database files
+  redis_data:      # Redis AOF persistence
+  uploads_data:    # User uploaded files (wwwroot/uploads)
 
 networks:
   chatapp-network:
