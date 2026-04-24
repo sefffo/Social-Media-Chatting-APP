@@ -1,0 +1,79 @@
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chatapp-api
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=db;Database=ChatAppDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True
+      - ConnectionStrings__Redis=redis:6379
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=ChatApp
+      - Jwt__Audience=ChatAppUsers
+    volumes:
+      # Persist user uploaded files (images, attachments) across container restarts
+      - uploads_data:/app/wwwroot/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - chatapp-network
+    restart: unless-stopped
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: chatapp-db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      # Persist SQL Server data across container restarts
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - chatapp-network
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${DB_PASSWORD}", "-Q", "SELECT 1", "-No"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: chatapp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      # Persist Redis data (cached messages, presence data) across container restarts
+      - redis_data:/data
+    networks:
+      - chatapp-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+# =============================================
+# Named Volumes — all persistent data lives here
+# Docker manages these on the host machine
+# =============================================
+volumes:
+  sqlserver_data:    # SQL Server database files
+  redis_data:        # Redis AOF persistence
+  uploads_data:      # User uploaded files (wwwroot/uploads)
+
+networks:
+  chatapp-network:
+    driver: bridge
