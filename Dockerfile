@@ -40,11 +40,9 @@ RUN mkdir -p /app/wwwroot/uploads
 # Copy published output from build stage
 COPY --from=build /app/publish .
 
-# Expose HTTP and HTTPS ports
+# Expose HTTP port
 EXPOSE 8080
-EXPOSE 8081
 
-# Set ASP.NET Core to listen on port 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
