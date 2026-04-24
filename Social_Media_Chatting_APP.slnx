@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Application-Core/">
+    <Project Path="Social-Media-Chatting-APP-Domain/Social-Media-Chatting-APP-Domain.csproj" />
+    <Project Path="Social-Media-Chatting-APP-Service/Social-Media-Chatting-APP-Service.csproj" />
+    <Project Path="Social-Media-Chatting-APP-ServiceAbstraction/Social-Media-Chatting-APP-ServiceAbstraction.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="Social-Media-Chatting-APP-Persistence/Social-Media-Chatting-APP-Persistence.csproj" />
+  </Folder>
+  <Folder Name="/Presentation/">
+    <Project Path="Social-Media-Chatting-APP-Presentation/Social-Media-Chatting-APP-Presentation.csproj" />
+    <Project Path="Social-Media-Chatting-APP-Web/Social-Media-Chatting-APP-Web.csproj" />
+  </Folder>
+  <Project Path="Social-Media-Chatting-APP-SharedLibrary/Social-Media-Chatting-APP-SharedLibrary.csproj" />
+</Solution>

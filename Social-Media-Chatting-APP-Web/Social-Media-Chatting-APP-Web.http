@@ -1,0 +1,6 @@
+@Social_Media_Chatting_APP_Web_HostAddress = http://localhost:5282
+
+GET {{Social_Media_Chatting_APP_Web_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

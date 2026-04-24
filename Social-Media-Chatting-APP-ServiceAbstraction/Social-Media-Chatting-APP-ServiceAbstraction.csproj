@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Social_Media_Chatting_APP_ServiceAbstraction</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Social-Media-Chatting-APP-Domain\Social-Media-Chatting-APP-Domain.csproj" />
+    <ProjectReference Include="..\Social-Media-Chatting-APP-SharedLibrary\Social-Media-Chatting-APP-SharedLibrary.csproj" />
+  </ItemGroup>
+
+</Project>
