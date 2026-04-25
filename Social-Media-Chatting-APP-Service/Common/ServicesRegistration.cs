@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using MediatR;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Social_Media_Chatting_APP_Service.FluentValidationMiddleWare;
 
@@ -16,7 +15,7 @@ namespace Social_Media_Chatting_APP_Service.Common
 
 
 
-            services.AddScoped<IAuthenticationService, AuthenticationService>();
+            //services.AddScoped<IAuthenticationService, AuthenticationService>();
 
             services.AddAutoMapper(assembly);
 
