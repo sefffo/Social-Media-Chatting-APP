@@ -12,4 +12,8 @@
     <ProjectReference Include="..\Social-Media-Chatting-APP-SharedLibrary\Social-Media-Chatting-APP-SharedLibrary.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Drawings\" />
+  </ItemGroup>
+
 </Project>
