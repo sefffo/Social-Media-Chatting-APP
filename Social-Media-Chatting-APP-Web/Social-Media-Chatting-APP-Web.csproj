@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Social_Media_Chatting_APP_Web</RootNamespace>
+    <UserSecretsId>5435f168-7e32-49a7-a8ad-d5a745e3b658</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
