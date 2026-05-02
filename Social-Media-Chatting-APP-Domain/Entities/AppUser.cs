@@ -8,7 +8,7 @@ namespace Social_Media_Chatting_APP_Domain.Entities
         
         public string? ProfilePicture { get; set; }
         
-        public string? BIO { get; set; }
+        public string? Bio { get; set; }
         
         public bool IsTwoFactorSetup { get; set; }
         
