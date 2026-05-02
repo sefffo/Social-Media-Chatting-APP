@@ -11,9 +11,8 @@ public class PasswordResetToken : BaseEntity<Guid>
     
     public DateTime ExpiresAt { get; set; }
     
-    public bool CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
     
-    public string Email { get; set; }
     /// <summary>
     /// FK to AppUser — so you know whose password to reset when the token is validated
     /// </summary>
