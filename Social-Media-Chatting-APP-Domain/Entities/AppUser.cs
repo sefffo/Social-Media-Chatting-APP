@@ -25,7 +25,8 @@ namespace Social_Media_Chatting_APP_Domain.Entities
         //nav prop 
         
         /// <summary>
-        /// As we are implementing multi session so a use can have multuple refreshtokens  
+        /// As we are implementing multi session so a use can have multuple refreshtokens
+        /// so we need to have one-to-many Realtionship   
         /// </summary>
         public ICollection<RefreshToken> RefreshTokens { get; set; }  
     }
