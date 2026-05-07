@@ -126,32 +126,31 @@ public class AuthService(
 
         // generate the AccessToken and Refresh Token 
         var (accessToken, jti) = await GenerateJWTTokenAsync(user);
-        
-        var RefreshToken =  GenerateRefreshToken();
+
+        var RefreshToken = GenerateRefreshToken();
 
         var RefreshTokenHash = ComputeSha256Hash(RefreshToken);
-        
-        var repo =  unitOfWork.GetRepository<RefreshToken, Guid>();
-        
+
+        var repo = unitOfWork.GetRepository<RefreshToken, Guid>();
+
         await repo.AddAsync(new RefreshToken
         {
-            Id        = Guid.NewGuid(),
-            TokenHash = RefreshTokenHash,                 // SHA-256 hash — safe to store
-            JwtId     = jti,                       // ← binds this row to the JWT above
-            UserId    = user.Id,                   // session owner
+            Id = Guid.NewGuid(),
+            TokenHash = RefreshTokenHash, // SHA-256 hash — safe to store
+            JwtId = jti, // ← binds this row to the JWT above
+            UserId = user.Id, // session owner
             ExpiresAt = DateTime.UtcNow.AddDays(7) // refresh window = 7 days
             // UsedAt   = null → not yet consumed
             // RevokedAt = null → not revoked
         });
 
         await unitOfWork.SaveChangesAsync();
-        
+
         return Result<LoginReturnDto>.Ok(new LoginReturnDto()
         {
             AccessToken = accessToken,
             RefreshToken = RefreshToken
         });
-
     }
 
     public async Task<Result> RegisterAsync(RegisterDto dto)
@@ -219,26 +218,26 @@ public class AuthService(
         {
             return Result<LoginReturnDto>.Fail(Error.Unauthorized("Auth.InvalidToken", "the access Token is Invalid"));
         }
-        
+
         // end the old Token authorization 
         stored.UsedAt = DateTime.UtcNow;
         stored.RevokedAt = DateTime.UtcNow;
-        
+
         //now generate the new Token 
-        var user = await  userManager.FindByIdAsync(userId);
+        var user = await userManager.FindByIdAsync(userId);
         //get the new access token with its jti 
-        var (newAccessToken,newJti) = await GenerateJWTTokenAsync(user);
+        var (newAccessToken, newJti) = await GenerateJWTTokenAsync(user);
 
         var newRawRefreshToken = GenerateRefreshToken();
-        
-        var newRefreshTokenHashed= ComputeSha256Hash(newRawRefreshToken);
-        
+
+        var newRefreshTokenHashed = ComputeSha256Hash(newRawRefreshToken);
+
         await repo.AddAsync(new RefreshToken
         {
-            Id        = Guid.NewGuid(),
+            Id = Guid.NewGuid(),
             TokenHash = newRefreshTokenHashed,
-            JwtId     = newJti,                    // new JWT's jti
-            UserId    = user!.Id,
+            JwtId = newJti, // new JWT's jti
+            UserId = user!.Id,
             ExpiresAt = DateTime.UtcNow.AddDays(7)
         });
 
@@ -246,10 +245,9 @@ public class AuthService(
 
         return Result<LoginReturnDto>.Ok(new LoginReturnDto()
         {
-            AccessToken =  newAccessToken,
-            RefreshToken =  newRefreshTokenHashed,
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshTokenHashed,
         });
-
     }
 
     /// <summary>
@@ -268,7 +266,7 @@ public class AuthService(
 
         // Load all and find by hash — same pattern as RefreshTokenAsync
         // to avoid ParallelEnumerable type-inference issues.
-        var all    = await repo.GetAllAsync();
+        var all = await repo.GetAllAsync();
         var stored = all.FirstOrDefault(x => x.TokenHash == hash);
 
         if (stored is null || !stored.IsActive)
@@ -305,8 +303,67 @@ public class AuthService(
         throw new NotImplementedException();
     }
 
-    public Task<Result<LoginDto>> HandleGoogleLoginAsync(string email, string name, string googleId)
+    public async Task<Result<LoginReturnDto>> HandleGoogleLoginAsync(string email, string name, string googleId)
     {
-        throw new NotImplementedException();
+        // 1. Primary lookup by Google identity — correct first check
+        var user = await userManager.FindByLoginAsync("Google", googleId);
+
+        if (user is null)
+        {
+            // 2. Check if email exists as a normal account
+            var existingUser = await userManager.FindByEmailAsync(email);
+            if (existingUser is not null && !existingUser.IsGoogleAccount)
+                return Result<LoginReturnDto>.Fail(Error.BadRequest(
+                    "Auth.EmailConflict",
+                    "This email is already registered. Please login with your password."));
+
+            // 3. Create new Google user
+            user = new AppUser
+            {
+                UserName = email, // ← email not name, must be unique
+                Email = email,
+                DisplayName = name,
+                IsGoogleAccount = true,
+                IsOnline = false,
+                IsTwoFactorSetup = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var randomPassword = Guid.NewGuid().ToString() + "!A1";
+            var createResult = await userManager.CreateAsync(user, randomPassword);
+
+            if (!createResult.Succeeded)
+                return Result<LoginReturnDto>.Fail(
+                    createResult.Errors
+                        .Select(e => Error.Validation(e.Code, e.Description))
+                        .ToList());
+
+            // 4. Link Google identity — no re-fetch needed, user.Id already populated
+            await userManager.AddLoginAsync(user, new UserLoginInfo("Google", googleId, "Google"));
+        }
+
+        // 5. Generate token pair
+        var rawRefreshToken = GenerateRefreshToken();
+        var hashedRefreshToken = ComputeSha256Hash(rawRefreshToken);
+        var (accessToken, jti) = await GenerateJWTTokenAsync(user);
+
+        // 6. Persist refresh token
+        var repo = unitOfWork.GetRepository<RefreshToken, Guid>();
+        await repo.AddAsync(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            TokenHash = hashedRefreshToken,
+            JwtId = jti,
+            UserId = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        });
+
+        await unitOfWork.SaveChangesAsync();
+
+        return Result<LoginReturnDto>.Ok(new LoginReturnDto
+        {
+            AccessToken = accessToken,
+            RefreshToken = rawRefreshToken
+        });
     }
 }

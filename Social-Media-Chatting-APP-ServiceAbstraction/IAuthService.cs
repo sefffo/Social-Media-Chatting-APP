@@ -66,7 +66,7 @@ public interface IAuthService
     /// <param name="name"></param>
     /// <param name="googleId"></param>
     /// <returns></returns>
-    Task<Result<LoginDto>> HandleGoogleLoginAsync(string email, string name, string googleId);
+    Task<Result<LoginReturnDto>> HandleGoogleLoginAsync(string email, string name, string googleId);
 
 
 }
