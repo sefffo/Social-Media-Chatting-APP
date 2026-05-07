@@ -5,6 +5,7 @@ using Social_Media_Chatting_APP_Persistence.DI;
 using Social_Media_Chatting_APP_Service.Common;
 using Social_Media_Chatting_APP_Web.CustomMiddlewares;
 using Social_Media_Chatting_APP_Web.Extensions;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,7 +36,12 @@ builder.Services.AddPersistenceServicesRegistration();
 #endregion
 
 
-#region SignalR Registeration
+#region SignalR Registeration and Redis 
+
+
+// Register IConnectionMultiplexer as singleton — used by AuthService for OTP/session storage
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    ConnectionMultiplexer.Connect("redisConnectionString"));
 
 builder.Services.AddSignalR()
     .AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!);
