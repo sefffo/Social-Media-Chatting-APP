@@ -252,9 +252,37 @@ public class AuthService(
 
     }
 
-    public Task<Result> RevokeRefreshTokenAsync(string rawRefreshToken)
+    /// <summary>
+    /// Terminates a session by permanently revoking a refresh token.
+    ///
+    /// Call this on logout. After this, the token's row has RevokedAt set,
+    /// which makes IsActive = false, blocking any future refresh attempts.
+    ///
+    /// For full logout across ALL devices, call this for every active
+    /// refresh token row for the user (filter by UserId, RevokedAt == null).
+    /// </summary>
+    public async Task<Result> RevokeRefreshTokenAsync(string rawRefreshToken)
     {
-        throw new NotImplementedException();
+        var hash = ComputeSha256Hash(rawRefreshToken);
+        var repo = unitOfWork.GetRepository<RefreshToken, Guid>();
+
+        // Load all and find by hash — same pattern as RefreshTokenAsync
+        // to avoid ParallelEnumerable type-inference issues.
+        var all    = await repo.GetAllAsync();
+        var stored = all.FirstOrDefault(x => x.TokenHash == hash);
+
+        if (stored is null || !stored.IsActive)
+            return Result<object>.Fail(
+                Error.NotFound(
+                    "Auth.TokenNotFound",
+                    "Refresh token not found or already revoked."));
+
+        // Stamp RevokedAt — IsActive becomes false immediately.
+        // The row is kept for audit purposes, not deleted.
+        stored.RevokedAt = DateTime.UtcNow;
+        await unitOfWork.SaveChangesAsync();
+
+        return Result<object>.Ok("Token Revoked");
     }
 
     public Task<Result> ForgotPasswordAsync(string email)
