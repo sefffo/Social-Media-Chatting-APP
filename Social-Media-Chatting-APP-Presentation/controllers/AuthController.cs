@@ -1,248 +1,231 @@
-using Google.Apis.Auth;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s;
+using System.Security.Claims;
 
 namespace Social_Media_Chatting_APP_Presentation.Controllers
 {
     /// <summary>
-    /// Handles all authentication operations:
-    /// registration, login, token refresh, logout, and Google OAuth login.
+    /// Handles all authentication operations for the Social Media App.
+    /// Only endpoints whose service implementation is complete are exposed here.
+    ///
+    /// Inherits from ApiBaseController which provides HandleResult() —
+    /// a unified method that maps Result/Result&lt;T&gt; to the correct HTTP status code.
+    /// This keeps every action method clean and consistent.
     ///
     /// BASE ROUTE: /api/auth
-    ///
-    /// HOW THE CONTROLLER LAYER WORKS:
-    ///   The controller is deliberately thin — it does NO business logic.
-    ///   Its only responsibilities are:
-    ///     1. Receive the HTTP request and deserialize the body into a DTO.
-    ///     2. Call the appropriate service method.
-    ///     3. Map the service Result to an HTTP response (200, 400, 401, etc.).
-    ///
-    ///   All real logic (token generation, hashing, DB writes) lives in AuthService.
-    ///   This separation makes the service independently testable without HTTP.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IAuthService authService) : ControllerBase
+    public class AuthController(IAuthService authService) : ApiBaseController
     {
-        // ═══════════════════════════════════════════════════════════════════════
-        // REGISTRATION
-        // ═══════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
+        // REGISTER
+        // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>
         /// Registers a new user account.
         ///
-        /// WHAT IT DOES:
-        ///   Creates a new AppUser via ASP.NET Identity.
-        ///   Password is hashed internally by Identity — we never store it plain.
-        ///   No token is issued on registration — the user must call /login after.
+        /// Creates an AppUser via ASP.NET Identity. The password is hashed
+        /// automatically by Identity — we never store it in plain text.
+        /// No token is returned here; the user must call /login after registering.
         ///
-        /// REQUEST BODY: RegisterDto
-        ///   - UserName    : unique display handle
-        ///   - Email       : unique email — used as the login identifier
-        ///   - DisplayName : shown in the UI (can be non-unique)
-        ///   - Password    : plain text — Identity hashes it automatically
+        /// REQUEST BODY:
+        ///   - UserName    : unique handle used across the app
+        ///   - Email       : unique email — this is the login identifier
+        ///   - DisplayName : visible name shown in the UI (not required to be unique)
+        ///   - Password    : plain text — Identity hashes it internally
         ///
         /// RESPONSES:
-        ///   201 Created         → account created successfully
-        ///   400 Bad Request     → duplicate email, or Identity validation failed
-        ///                         (weak password, invalid email format, etc.)
+        ///   204 No Content      → account created successfully
+        ///   400 Bad Request     → duplicate email
+        ///   422 Unprocessable   → Identity validation failed (weak password, etc.)
         /// </summary>
         [HttpPost("register")]
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var result = await authService.RegisterAsync(dto);
-
-            if (!result.IsSuccess)
-                return BadRequest(result.Errors);
-
-            // 201 Created — standard for successful resource creation.
-            // No body needed — user should now call /login.
-            return StatusCode(StatusCodes.Status201Created);
+            return HandleResult(result);
         }
 
 
-        // ═══════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
         // LOGIN
-        // ═══════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>
         /// Authenticates a user with email and password.
         ///
-        /// WHAT IT DOES:
-        ///   Verifies credentials against the Identity store.
-        ///   On success, issues a JWT access token (short-lived) and a
-        ///   refresh token (long-lived, 7 days) as a pair.
+        /// Verifies credentials against the Identity store.
+        /// On success, returns a JWT access token (short-lived) paired with a
+        /// refresh token (7 days). The two tokens are linked via the jti claim —
+        /// they must always be used as a pair.
         ///
-        ///   The two tokens are linked by the jti claim — they must always
-        ///   be used together. See AuthService for the full login flow.
-        ///
-        /// REQUEST BODY: LoginDto
-        ///   - Email    : registered email
-        ///   - Password : account password
+        /// REQUEST BODY:
+        ///   - Email    : the registered email address
+        ///   - Password : the account password
         ///
         /// RESPONSES:
-        ///   200 OK              → { accessToken, refreshToken }
-        ///   401 Unauthorized    → wrong email or password
+        ///   200 OK           → { accessToken, refreshToken }
+        ///   401 Unauthorized → wrong email or password
         ///
-        /// CLIENT STORAGE ADVICE:
-        ///   Store accessToken  in memory (JS variable) — never in localStorage.
-        ///   Store refreshToken in an HttpOnly cookie — prevents XSS theft.
+        /// CLIENT STORAGE:
+        ///   Keep accessToken in memory only (not localStorage — XSS risk).
+        ///   Keep refreshToken in an HttpOnly cookie.
         /// </summary>
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var result = await authService.LoginAsync(dto);
-
-            if (!result.IsSuccess)
-                return Unauthorized(result.Errors);
-
-            return Ok(result.Data);
+            return HandleResult(result);
         }
 
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // TOKEN REFRESH
-        // ═══════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
+        // REFRESH TOKEN
+        // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Issues a new token pair using an expired access token + valid refresh token.
+        /// Issues a brand-new token pair using an expired access token + a valid refresh token.
         ///
-        /// WHAT IT DOES:
-        ///   Called automatically by the client when the access token expires.
-        ///   Validates the expired JWT (signature only — expiry is intentionally ignored).
-        ///   Looks up the refresh token by its SHA-256 hash in the database.
-        ///   Verifies the jti link between the two tokens.
-        ///   Rotates: marks old refresh token as used + revoked, issues a brand new pair.
+        /// The client calls this automatically when its access token expires,
+        /// so the user never has to log in again while their session is active.
         ///
-        /// TOKEN ROTATION:
-        ///   Each refresh token is single-use. After this call, the old tokens
-        ///   are dead. The client must replace both stored tokens with the new ones.
+        /// What happens internally:
+        ///   1. The expired JWT signature and claims are validated (expiry is ignored intentionally).
+        ///   2. The refresh token is SHA-256 hashed and looked up in the database.
+        ///   3. The jti claim ties the two tokens together — a mismatch = rejected.
+        ///   4. The old refresh token row is stamped UsedAt + RevokedAt (single-use).
+        ///   5. A new JWT + new refresh token are issued and persisted.
         ///
-        /// REQUEST BODY: RefreshTokenDto
-        ///   - AccessToken  : the EXPIRED JWT string
-        ///   - RefreshToken : the raw (unhashed) refresh token from the last login/refresh
+        /// REQUEST BODY:
+        ///   - AccessToken  : the EXPIRED JWT string (not a new one)
+        ///   - RefreshToken : the raw (unhashed) refresh token from the last login
         ///
         /// RESPONSES:
-        ///   200 OK              → { accessToken, refreshToken } (brand new pair)
-        ///   401 Unauthorized    → invalid/tampered/expired/already-used tokens
+        ///   200 OK           → { accessToken, refreshToken } (brand new pair)
+        ///   401 Unauthorized → tampered, expired, already-used, or mismatched tokens
         /// </summary>
         [HttpPost("refresh")]
         [AllowAnonymous]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
         {
             var result = await authService.RefreshTokenAsync(dto);
-
-            if (!result.IsSuccess)
-                return Unauthorized(result.Errors);
-
-            return Ok(result.Data);
+            return HandleResult(result);
         }
 
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // LOGOUT / REVOKE
-        // ═══════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
+        // LOGOUT
+        // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Logs the user out by permanently revoking their refresh token.
+        /// Logs the user out by permanently revoking their current refresh token.
         ///
-        /// WHAT IT DOES:
-        ///   Hashes the incoming raw refresh token, finds the DB row, and
-        ///   sets RevokedAt = now. This makes IsActive = false permanently,
-        ///   blocking any future refresh attempts with this token.
+        /// The refresh token row in the database is stamped with RevokedAt = now,
+        /// which makes IsActive = false. Any future refresh attempt with this token
+        /// will be rejected. The row is kept (never deleted) for audit purposes.
         ///
-        ///   The DB row is NEVER deleted — it is kept as an audit record.
-        ///   For multi-device logout, call this for each active refresh token.
+        /// [Authorize] is required — only a user with a valid (non-expired) JWT
+        /// can hit this endpoint. Send the JWT in: Authorization: Bearer &lt;token&gt;
         ///
-        /// WHY [Authorize] HERE:
-        ///   Only authenticated users can logout. The JWT must be valid
-        ///   (not expired) to reach this endpoint.
+        /// For full multi-device logout, call this once per active refresh token.
         ///
-        /// REQUEST BODY: string
-        ///   - rawRefreshToken : the plain refresh token stored by the client
+        /// REQUEST BODY:
+        ///   - rawRefreshToken : the plain refresh token string the client has stored
         ///
         /// RESPONSES:
-        ///   200 OK              → token revoked, session terminated
-        ///   400 Bad Request     → token not found or already revoked
-        ///   401 Unauthorized    → no valid JWT in Authorization header
+        ///   204 No Content   → session terminated successfully
+        ///   400 Bad Request  → token not found or already revoked
+        ///   401 Unauthorized → missing or invalid JWT in Authorization header
         /// </summary>
         [HttpPost("logout")]
         [Authorize]
         public async Task<IActionResult> Logout([FromBody] string rawRefreshToken)
         {
             var result = await authService.RevokeRefreshTokenAsync(rawRefreshToken);
-
-            if (!result.IsSuccess)
-                return BadRequest(result.Errors);
-
-            return Ok("Logged out successfully.");
+            return HandleResult(result);
         }
 
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // GOOGLE OAUTH LOGIN
-        // ═══════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
+        // GOOGLE OAUTH — STEP 1: REDIRECT
+        // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Authenticates or registers a user via Google OAuth.
+        /// Initiates the Google OAuth2 login flow by redirecting the user to Google's consent screen.
         ///
-        /// WHAT IT DOES:
-        ///   The frontend receives a Google idToken after the user completes
-        ///   Google's own login flow. That raw idToken is sent here.
+        /// This is a browser-redirect flow (not a JSON API call).
+        /// The client navigates to this URL, Google handles authentication,
+        /// then Google redirects back to /google-callback automatically.
         ///
-        ///   The backend validates the idToken via Google's public keys
-        ///   (GoogleJsonWebSignature.ValidateAsync) — this happens in the
-        ///   controller before calling the service.
-        ///
-        ///   Then passes verified (email, name, googleId) to the service which:
-        ///     - Finds existing user by googleId → issues tokens immediately
-        ///     - Finds email exists as normal account → returns 400 conflict
-        ///     - No user found → creates new account (JIT provisioning) → issues tokens
-        ///
-        /// NO PASSWORD, NO 2FA:
-        ///   Google already verified the user's identity. No OTP flow needed.
-        ///   A random unguessable internal password is set — the user never knows it.
-        ///
-        /// REQUEST BODY: GoogleLoginDto
-        ///   - IdToken : the raw Google JWT returned by the Google Sign-In SDK
+        /// No request body needed — just a GET request from the browser.
         ///
         /// RESPONSES:
-        ///   200 OK              → { accessToken, refreshToken }
-        ///   400 Bad Request     → email conflict (registered with password)
-        ///   401 Unauthorized    → invalid or expired Google idToken
+        ///   302 Redirect → browser is sent to Google's login page
         /// </summary>
-        [HttpPost("google-login")]
+        [HttpGet("google-login")]
         [AllowAnonymous]
-        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto dto)
+        public IActionResult GoogleLogin()
         {
-            // Validate Google's idToken and extract claims.
-            // Done in the controller — not the service — because it is
-            // an infrastructure concern (HTTP call to Google), not business logic.
-            GoogleJsonWebSignature.Payload payload;
-            try
-            {
-                payload = await GoogleJsonWebSignature.ValidateAsync(dto.IdToken);
-            }
-            catch
-            {
-                return Unauthorized("Invalid Google token.");
-            }
+            // Build the URL Google should redirect back to after the user consents.
+            var redirectUri = Url.Action(nameof(GoogleCallback), "Auth", null, Request.Scheme);
 
-            var result = await authService.HandleGoogleLoginAsync(
-                email:    payload.Email,
-                name:     payload.Name,
-                googleId: payload.Subject  // "sub" claim — permanent Google user ID
-            );
+            // AuthenticationProperties carries the redirect URI into the Google middleware.
+            var properties = new AuthenticationProperties { RedirectUri = redirectUri };
 
-            if (!result.IsSuccess)
-                return BadRequest(result.Errors);
+            // Challenge() triggers the Google middleware to redirect the browser to Google.
+            // GoogleDefaults.AuthenticationScheme = "Google"
+            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+        }
 
-            return Ok(result.Data);
+
+        // ═══════════════════════════════════════════════════════════════════
+        // GOOGLE OAUTH — STEP 2: CALLBACK
+        // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Handles Google's redirect back after the user consents on Google's login page.
+        ///
+        /// Google redirects here with an authorization code. ASP.NET's Google middleware
+        /// exchanges it for an access token, reads the user's profile, and stores
+        /// the claims in a temporary Cookie. This action then reads those claims.
+        ///
+        /// What the service does with (email, name, googleId):
+        ///   - User exists by googleId        → issues tokens immediately
+        ///   - Email exists as normal account  → returns 400 conflict error
+        ///   - No user found                   → creates new account (JIT) → issues tokens
+        ///
+        /// This endpoint is called by Google's servers, not directly by your client.
+        ///
+        /// RESPONSES:
+        ///   200 OK           → { accessToken, refreshToken }
+        ///   400 Bad Request  → email already registered with password
+        ///   401 Unauthorized → Google authentication failed
+        /// </summary>
+        [HttpGet("google-callback")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GoogleCallback()
+        {
+            // Read the cookie that Google middleware populated after the OAuth exchange.
+            var authResult = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            if (!authResult.Succeeded)
+                return Unauthorized(new { message = "Google authentication failed." });
+
+            // Extract the three pieces of identity from Google's claims.
+            var email    = authResult.Principal!.FindFirstValue(ClaimTypes.Email)!;
+            var name     = authResult.Principal!.FindFirstValue(ClaimTypes.Name)!;
+            var googleId = authResult.Principal!.FindFirstValue(ClaimTypes.NameIdentifier)!; // "sub" claim
+
+            var result = await authService.HandleGoogleLoginAsync(email, name, googleId);
+            return HandleResult(result);
         }
     }
 }
