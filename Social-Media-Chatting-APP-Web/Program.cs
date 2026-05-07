@@ -41,7 +41,7 @@ builder.Services.AddPersistenceServicesRegistration();
 
 // Register IConnectionMultiplexer as singleton — used by AuthService for OTP/session storage
 builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect("redisConnectionString"));
+    ConnectionMultiplexer.Connect("Redis"));
 
 builder.Services.AddSignalR()
     .AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!);
