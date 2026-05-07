@@ -11,8 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(Social_Media_Chatting_APP_Presentation.Controllers.AuthController).Assembly);
+
 builder.Services.AddOpenApi();
 
 
@@ -36,52 +37,40 @@ builder.Services.AddPersistenceServicesRegistration();
 #endregion
 
 
-#region SignalR Registeration and Redis 
+#region SignalR and Redis
 
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis")!;
 
-// Register IConnectionMultiplexer as singleton — used by AuthService for OTP/session storage
+// Singleton IConnectionMultiplexer — shared across the app (AuthService OTP/session storage)
 builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect("Redis"));
+    ConnectionMultiplexer.Connect(redisConnectionString));
 
+// SignalR Redis backplane — uses same Redis instance for multi-server broadcasting
 builder.Services.AddSignalR()
-    .AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!);
+    .AddStackExchangeRedis(redisConnectionString);
 
 #endregion
 
 
-#region Authentication Registeration
-
+#region Authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
-
-
 #endregion
 
 var app = builder.Build();
-
-
-//adding custom middlewares for database migration and data seeding during application startup
 
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 //await app.MigrateDatabaseAsync();
 
-
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference(); // UI → /scalar/v1
-
+    app.MapScalarApiReference();
 }
 
-
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
-
-
