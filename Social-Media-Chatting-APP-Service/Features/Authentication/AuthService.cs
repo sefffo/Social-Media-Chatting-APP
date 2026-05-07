@@ -25,8 +25,7 @@ public class AuthService(
     ILogger<AuthService> logger ,
     IHttpContextAccessor accessor,
     IConnectionMultiplexer connectionMultiplexer,
-    IOptions<JwtSettings> options,
-    IEmailService emailService) : IAuthService
+    IOptions<JwtSettings> options ) : IAuthService
 {
     private static string GenerateRefreshToken()
     {
