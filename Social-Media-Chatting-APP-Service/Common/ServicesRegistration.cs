@@ -1,8 +1,11 @@
 ﻿using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Social_Media_Chatting_APP_Service.Common.Email;
 using Social_Media_Chatting_APP_Service.Common.MappingProfiles;
+using Social_Media_Chatting_APP_Service.Features.Authentication;
 using Social_Media_Chatting_APP_Service.FluentValidationMiddleWare;
+using Social_Media_Chatting_APP_ServiceAbstraction;
 
 namespace Social_Media_Chatting_APP_Service.Common
 {
@@ -16,9 +19,10 @@ namespace Social_Media_Chatting_APP_Service.Common
 
 
 
-            //services.AddScoped<IAuthenticationService, AuthenticationService>();
-
-            services.AddAutoMapper(typeof(AuthMappingProfile).Assembly);
+            services.AddScoped<IAuthService, AuthService>();
+            //services.AddScoped<IEmailService, EmailService>();
+            
+            services.AddAutoMapper(assembly);
 
             // Registers ALL handlers in this assembly automatically
             services.AddMediatR(cfg =>
