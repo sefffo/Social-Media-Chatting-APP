@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Social_Media_Chatting_APP_Service.Common.MappingProfiles;
 using Social_Media_Chatting_APP_Service.FluentValidationMiddleWare;
 
 namespace Social_Media_Chatting_APP_Service.Common
@@ -17,7 +18,7 @@ namespace Social_Media_Chatting_APP_Service.Common
 
             //services.AddScoped<IAuthenticationService, AuthenticationService>();
 
-            services.AddAutoMapper(assembly);
+            services.AddAutoMapper(typeof(AuthMappingProfile).Assembly);
 
             // Registers ALL handlers in this assembly automatically
             services.AddMediatR(cfg =>

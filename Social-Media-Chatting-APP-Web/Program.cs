@@ -4,6 +4,7 @@ using Social_Media_Chatting_APP_Persistence.DbContext;
 using Social_Media_Chatting_APP_Persistence.DI;
 using Social_Media_Chatting_APP_Service.Common;
 using Social_Media_Chatting_APP_Web.CustomMiddlewares;
+using Social_Media_Chatting_APP_Web.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,7 @@ builder.Services.AddDbContext<Social_Media_Chatting_APP_DbContext>(options =>
 builder.Services.AddApplicationServices();
 builder.Services.AddHttpContextAccessor();
 #endregion
+
 #region Persistence
 builder.Services.AddPersistenceServicesRegistration();
 #endregion
@@ -40,6 +42,13 @@ builder.Services.AddSignalR()
 
 #endregion
 
+
+#region Authentication Registeration
+
+builder.Services.AddJwtAuthentication(builder.Configuration);
+
+
+#endregion
 
 var app = builder.Build();
 
