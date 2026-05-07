@@ -22,8 +22,7 @@ namespace Social_Media_Chatting_APP_Service.Features.Authentication;
 public class AuthService(
     IUnitOfWork unitOfWork,
     UserManager<AppUser> userManager,
-    ILogger logger,
-    IMapper mapper,
+    ILogger<AuthService> logger ,
     IHttpContextAccessor accessor,
     IConnectionMultiplexer connectionMultiplexer,
     IOptions<JwtSettings> options,
