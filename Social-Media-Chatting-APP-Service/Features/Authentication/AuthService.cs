@@ -23,7 +23,6 @@ public class AuthService(
     IUnitOfWork unitOfWork,
     UserManager<AppUser> userManager,
     ILogger logger,
-    RoleManager<IdentityRole> roleManager,
     IMapper mapper,
     IHttpContextAccessor accessor,
     IConnectionMultiplexer connectionMultiplexer,
@@ -91,7 +90,7 @@ public class AuthService(
             ValidateIssuer = true,
             ValidateLifetime = false, // intentional as we ew gonna get the expired 
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Value.SecretKey)),
-            ValidIssuer = options.Value.Audience,
+            ValidIssuer   = options.Value.Issuer,
             ValidAudience = options.Value.Audience,
             ValidateIssuerSigningKey = true,
         };
@@ -246,7 +245,7 @@ public class AuthService(
         return Result<LoginReturnDto>.Ok(new LoginReturnDto()
         {
             AccessToken = newAccessToken,
-            RefreshToken = newRefreshTokenHashed,
+            RefreshToken =newRawRefreshToken ,
         });
     }
 
