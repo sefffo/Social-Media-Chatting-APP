@@ -109,7 +109,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         ///   - RefreshToken : the raw (unhashed) refresh token from the last login
         ///
         /// RESPONSES:
-        ///   200 OK           → { accessToken, refreshToken } (brand new pair)
+        ///   200 OK           → { accessToken, refreshToken } (brand-new pair)
         ///   401 Unauthorized → tampered, expired, already-used, or mismatched tokens
         /// </summary>
         [HttpPost("refresh")]
