@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Social_Media_Chatting_APP_Service.Common.Email;
 using Social_Media_Chatting_APP_Service.Common.MappingProfiles;
@@ -12,16 +13,33 @@ namespace Social_Media_Chatting_APP_Service.Common
     public static class ServicesRegistration
     {
         public static IServiceCollection AddApplicationServices(
-           this IServiceCollection services)
+            this IServiceCollection services
+            , IConfiguration configuration)
         {
             var assembly = typeof(ServicesRegistration).Assembly;
 
 
+            #region Email Service
+
+            // Bind EmailSettings from appsettings.json
+            services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+
+            // Register the email service
+            services.AddTransient<IEmailService, EmailService>();
+
+
+            // Register the background queue as Singleton (must survive the app lifetime)
+            services.AddSingleton<BackgroundEmailQueue>();
+
+            // Register the hosted worker
+            services.AddHostedService<EmailSenderBackgroundService>();
+
+            #endregion
 
 
             services.AddScoped<IAuthService, AuthService>();
             //services.AddScoped<IEmailService, EmailService>();
-            
+
             services.AddAutoMapper(assembly);
 
             // Registers ALL handlers in this assembly automatically

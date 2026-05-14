@@ -28,7 +28,7 @@ builder.Services.AddDbContext<Social_Media_Chatting_APP_DbContext>(options =>
 #endregion
 
 #region Application Services
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 #endregion
 
