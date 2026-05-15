@@ -2,11 +2,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using AutoMapper;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Social_Media_Chatting_APP_Domain.Entities;
@@ -16,7 +12,6 @@ using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s;
 using Social_Media_Chatting_APP_SharedLibrary.Settings;
 using Social_Media_Chatting_APP_SharedLibrary.SharedResponse;
-using StackExchange.Redis;
 using JwtRegisteredClaimNames = Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames;
 
 namespace Social_Media_Chatting_APP_Service.Features.Authentication;
