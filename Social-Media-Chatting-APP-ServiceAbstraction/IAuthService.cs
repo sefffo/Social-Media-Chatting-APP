@@ -52,7 +52,18 @@ public interface IAuthService
     
     
     Task<Result> ResetPasswordAsync(ResetPasswordDto dto);
-    
+    /// <summary>
+    /// Enables 2FA for the authenticated user.
+    /// Sets IsTwoFactorSetup = true on AppUser.
+    /// From this point, every login will require an OTP before JWT is issued.
+    /// </summary>
+    Task<Result> EnableTwoFactorAsync(string userId);
+    /// <summary>
+    /// Disables 2FA for the authenticated user.
+    /// Sets IsTwoFactorSetup = false on AppUser.
+    /// Login will return JWT directly without OTP step.
+    /// </summary>
+    Task<Result> DisableTwoFactorAsync(string userId);
     
     Task<Result<LoginReturnDto>> VerifyOtpAsync(VerifyOtpDto dto);
     

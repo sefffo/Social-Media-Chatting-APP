@@ -126,13 +126,28 @@ public class AuthService(
         {
             return Error.InvalidCredentials("Auth.InvalidCredentials", "Invalid Credentials");
         }
-        
+
         if (!user.EmailConfirmed)
         {
             await otpService.GenerateAndSendAsync(user.Id, OtpPurpose.EmailVerification);
             return Result<LoginReturnDto>.Fail(Error.BadRequest(
                 "Auth.EmailNotVerified",
                 "Please verify your email. A new code has been sent to your inbox."));
+        }
+
+        // ← NEW Gate: 2FA enabled?
+        // WHY: User proved their password — but with 2FA on, that's only factor one.
+        // We must NOT issue JWT here. Send OTP and tell frontend to show OTP screen.
+        if (user.IsTwoFactorSetup)
+        {
+            await otpService.GenerateAndSendAsync(user.Id, OtpPurpose.TwoFactorLogin);
+            return Result<LoginReturnDto>.Ok(new LoginReturnDto
+            {
+                RequiresTwoFactor = true,
+                UserId = user.Id,
+                AccessToken = null,
+                RefreshToken = null
+            });
         }
 
         // generate the AccessToken and Refresh Token 
@@ -195,6 +210,7 @@ public class AuthService(
             return Result<object>.Fail(
                 result.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList());
         }
+
         // ← Trigger OTP after successful registration
         // User can't login until they verify — VerifyOtpAsync sets EmailConfirmed=true
         await otpService.GenerateAndSendAsync(user.Id, OtpPurpose.EmailVerification);
@@ -422,19 +438,22 @@ public class AuthService(
         {
             return Result<object>.Fail(Error.NotFound("Auth.TokenUsed", "This reset link has already been used."));
         }
+
         //expired 
         if (resetToken.ExpiresAt < DateTime.UtcNow)
         {
-            return Result<object>.Fail(Error.NotFound("Auth.TokenExpired", "This reset link has expired. Please request a new one."));
+            return Result<object>.Fail(Error.NotFound("Auth.TokenExpired",
+                "This reset link has expired. Please request a new one."));
         }
-        var user =  await userManager.FindByIdAsync(resetToken.UserId);
+
+        var user = await userManager.FindByIdAsync(resetToken.UserId);
         //check if user exist 
         if (user is null)
         {
             return Result<object>.Fail(Error.NotFound(
                 "Auth.UserNotFound", "User not found."));
         }
-        
+
         // ④ Reset the password using ASP.NET Identity
         // WHY RemovePasswordAsync + AddPasswordAsync instead of direct hash?
         // Identity handles all the hashing, salting, and validation rules for us
@@ -447,42 +466,108 @@ public class AuthService(
         if (!addResult.Succeeded)
             return Result<object>.Fail(
                 addResult.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList());
-        
+
         //kill the Token used 
         //check ot at the DB 
         resetToken.IsUsed = true;
-        await  unitOfWork.SaveChangesAsync();
+        await unitOfWork.SaveChangesAsync();
         return Result<object>.Ok("Reset Password Success");
     }
 
-    
+    public async Task<Result> EnableTwoFactorAsync(string userId)
+    {
+        var user = await userManager.FindByIdAsync(userId);
+        if (user is null)
+            return Result<object>.Fail(Error.NotFound("Auth.UserNotFound", "User not found."));
+
+        // Idempotency check — enabling already-enabled 2FA is a no-op
+        // WHY: Don't throw an error, just inform. Idempotent operations are
+        // safer — if the client calls this twice it won't break anything.
+        if (user.IsTwoFactorSetup)
+            return Result<object>.Fail(Error.BadRequest(
+                "Auth.2FAAlreadyEnabled", "Two-factor authentication is already enabled."));
+
+        //enable the 2FA
+        user.IsTwoFactorSetup = true;
+
+        //update the user 
+        await userManager.UpdateAsync(user);
+
+        // Notify the user — if someone else enabled 2FA on their account
+        // without their knowledge, this email is their alert
+        await emailQueue.EnqueueAsync(async (ct) =>
+            await emailService.SendAsync(
+                user.Email!,
+                "Two-Factor Authentication Enabled — ConnectO",
+                $"""
+                 <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto">
+                     <h2 style="color:#4F46E5">2FA Enabled</h2>
+                     <p>Hi {user.DisplayName ?? user.UserName},</p>
+                     <p>Two-factor authentication has been <strong>enabled</strong> on your ConnectO account.</p>
+                     <p>Every login will now require a verification code sent to this email.</p>
+                     <p style="color:#888;font-size:12px">
+                         If you didn't do this, please reset your password immediately.
+                     </p>
+                 </div>
+                 """
+            )
+        );
+        return Result<object>.Ok("Two-factor authentication enabled successfully.");
+    }
+
+    public async Task<Result> DisableTwoFactorAsync(string userId)
+    {
+        var user = await userManager.FindByIdAsync(userId);
+        if (user is null)
+            return Result<object>.Fail(Error.NotFound("Auth.UserNotFound", "User not found."));
+
+        if (!user.IsTwoFactorSetup)
+            return Result<object>.Fail(Error.BadRequest(
+                "Auth.2FANotEnabled", "Two-factor authentication is not enabled."));
+
+        user.IsTwoFactorSetup = false;
+        await userManager.UpdateAsync(user);
+
+        return Result<object>.Ok("Two-factor authentication disabled successfully.");
+    }
+
+
     /// <summary>
     /// Orchestrates OTP verification + JWT issuance.
     /// Step 1: Delegate code validation to OtpService (Redis logic lives there)
     /// Step 2: If valid, confirm email + issue full JWT pair
     /// AuthService never touches Redis — it only asks OtpService "is this code valid?"
     /// </summary>
-    public  async Task<Result<LoginReturnDto>> VerifyOtpAsync(VerifyOtpDto dto)
+    public async Task<Result<LoginReturnDto>> VerifyOtpAsync(VerifyOtpDto dto)
     {
-        // ① Ask OtpService to validate the code — all Redis logic is inside there
-        var verifyResult = await otpService.VerifyAsync(
-            dto.UserId, dto.Code, OtpPurpose.EmailVerification);
-
-        // ② If OtpService says no → bubble the error up, never issue a token
-        if (!verifyResult.IsSuccess)
-            return Result<LoginReturnDto>.Fail(Error.BadRequest("Auth.BadRequest","Otp Failed"));
-
-        // ③ Code is valid — find the user to issue their JWT
         var user = await userManager.FindByIdAsync(dto.UserId);
         if (user is null)
             return Result<LoginReturnDto>.Fail(
                 Error.NotFound("Auth.UserNotFound", "User not found."));
 
-        // ④ Mark email as confirmed — user proved they own this inbox
-        // WHY: Identity's EmailConfirmed flag gates certain operations
-        // (password reset, role assignments, etc.) — important to set it here
-        user.EmailConfirmed = true;
-        await userManager.UpdateAsync(user);
+        // ② Determine purpose from user state
+        // If email not confirmed yet → this is EmailVerification flow
+        // If email confirmed + 2FA setup → this is TwoFactorLogin flow
+        var purpose = !user.EmailConfirmed
+            ? OtpPurpose.EmailVerification
+            : OtpPurpose.TwoFactorLogin;
+
+        // ① Ask OtpService to validate the code — all Redis logic is inside there
+        var verifyResult = await otpService.VerifyAsync(
+            dto.UserId, dto.Code, purpose);
+
+
+        // ② If OtpService says no → bubble the error up, never issue a token
+        if (!verifyResult.IsSuccess)
+            return Result<LoginReturnDto>.Fail(Error.BadRequest("Auth.BadRequest", "Otp Failed"));
+
+        // ④ Code verified — NOW safe to confirm email if this was EmailVerification
+        // WHY here and not before: we only confirm after proving the code is correct
+        if (purpose == OtpPurpose.EmailVerification)
+        {
+            user.EmailConfirmed = true;
+            await userManager.UpdateAsync(user);
+        }
 
         // ⑤ Issue the full JWT pair — same pattern as LoginAsync
         var (accessToken, jti) = await GenerateJWTTokenAsync(user);
@@ -507,7 +592,7 @@ public class AuthService(
             RefreshToken = rawRefreshToken
         });
     }
-    
+
     public async Task<Result<LoginReturnDto>> HandleGoogleLoginAsync(string email, string name, string googleId)
     {
         // 1. Primary lookup by Google identity — correct first check
