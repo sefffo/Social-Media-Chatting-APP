@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Social_Media_Chatting_APP_Persistence.DbContext;
@@ -11,9 +12,11 @@ using Social_Media_Chatting_APP_Persistence.DbContext;
 namespace Social_Media_Chatting_APP_Persistence.Migrations
 {
     [DbContext(typeof(Social_Media_Chatting_APP_DbContext))]
-    partial class Social_Media_Chatting_APP_DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260515150335_AddPasswordResetTokenConfig")]
+    partial class AddPasswordResetTokenConfig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

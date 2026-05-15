@@ -5,11 +5,13 @@ using System.Text;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Social_Media_Chatting_APP_Domain.Entities;
 using Social_Media_Chatting_APP_Domain.Interfaces;
+using Social_Media_Chatting_APP_Service.Common;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s;
 using Social_Media_Chatting_APP_SharedLibrary.Settings;
@@ -22,10 +24,13 @@ namespace Social_Media_Chatting_APP_Service.Features.Authentication;
 public class AuthService(
     IUnitOfWork unitOfWork,
     UserManager<AppUser> userManager,
-    ILogger<AuthService> logger ,
+    ILogger<AuthService> logger,
     IHttpContextAccessor accessor,
     IConnectionMultiplexer connectionMultiplexer,
-    IOptions<JwtSettings> options ) : IAuthService
+    IOptions<AppSettings> appSettings,
+    BackgroundEmailQueue emailQueue,
+    IEmailService emailService,
+    IOptions<JwtSettings> options) : IAuthService
 {
     private static string GenerateRefreshToken()
     {
@@ -88,7 +93,7 @@ public class AuthService(
             ValidateIssuer = true,
             ValidateLifetime = false, // intentional as we ew gonna get the expired 
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Value.SecretKey)),
-            ValidIssuer   = options.Value.Issuer,
+            ValidIssuer = options.Value.Issuer,
             ValidAudience = options.Value.Audience,
             ValidateIssuerSigningKey = true,
         };
@@ -243,7 +248,7 @@ public class AuthService(
         return Result<LoginReturnDto>.Ok(new LoginReturnDto()
         {
             AccessToken = newAccessToken,
-            RefreshToken =newRawRefreshToken ,
+            RefreshToken = newRawRefreshToken,
         });
     }
 
@@ -280,14 +285,157 @@ public class AuthService(
         return Result<object>.Ok("Token Revoked");
     }
 
-    public Task<Result> ForgotPasswordAsync(string email)
+    /// <summary>
+    /// first step in the reset Password process
+    /// 1=>get the user if found ==> Return OK for the Data integrity and safety as he doesn't know
+    /// 2=>if yes exist check if he still has valid Reset Tokens if yes ?  kill the old ones generate a new one
+    ///    Old links sitting in their inbox become dead.
+    /// 3=>Generate a new safe Token and add it to the DB
+    /// 4=>Build a rest Link
+    /// 5=> add the Link to the Email service Queue (Background job) 
+    /// 6=> return OK as Email Sent 
+    /// If this email is registered, a reset link has been sent
+    /// </summary>
+    /// <param name="email"></param>
+    /// <returns></returns>
+    public async Task<Result> ForgotPasswordAsync(string email)
     {
-        throw new NotImplementedException();
+        //find the user by email first 
+        var user = await userManager.FindByEmailAsync(email);
+        //check on his state if found or not 
+
+        if (user is null)
+        {
+            return Result<object>.Ok("If this email is registered, a reset link has been sent.");
+        }
+
+        //get the repo 
+        var repo = unitOfWork.GetRepository<PasswordResetToken, Guid>();
+        //validate all the active tokens he has bec => only the Last Token must be alive 
+
+        //check on 3 things 
+        //1=> if user already in the DB 
+        //2=> if he has Valid Token and 3=>Active 
+        var allExistResetTokens = (await repo.GetAllAsync()).Where(t => t.UserId == user.Id &&
+                                                                        t.IsUsed == false &&
+                                                                        t.ExpiresAt > DateTime.UtcNow).ToList();
+
+        foreach (var old in allExistResetTokens)
+        {
+            old.IsUsed = true; //to kill any unused Tokens 
+        }
+
+
+        // ④ Generate a cryptographically secure URL-safe token
+        // WHY NOT Guid: GUIDs are not cryptographically random — use OS-level randomness
+        // 64 bytes → 512 bits of entropy → practically impossible to brute force
+        var tokenBytes = RandomNumberGenerator.GetBytes(64);
+        var token = Convert.ToBase64String(tokenBytes)
+            .Replace("+", "-") // + and / are not URL-safe
+            .Replace("/", "_") // replace with URL-safe equivalents
+            .Replace("=", ""); // remove padding, not needed for our purposes
+
+        //build a save Token 
+
+        var resetToken = new PasswordResetToken()
+        {
+            Token = token,
+            UserId = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(15), //only live for 15 min 
+            IsUsed = false,
+            CreatedAt = DateTime.UtcNow,
+        };
+        //add the Token To the DB 
+        await repo.AddAsync(resetToken);
+        await unitOfWork.SaveChangesAsync();
+        //generate the Link 
+        //get the base URL Based on the Env 
+        var BaseUrl = appSettings.Value.BaseUrl;
+        var resetLink = $"{BaseUrl}/reset-password?token={token}";
+        //add the Email Sending Link to the Background job 
+
+        await emailQueue.EnqueueAsync(async (ct) =>
+            await emailService.SendAsync(
+                email,
+                "Reset Your ConnectO Account Password",
+                $"""
+                 <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto">
+                     <h2 style="color:#4F46E5">Password Reset Request</h2>
+                     <p>Hi {user.DisplayName ?? user.UserName},</p>
+                     <p>We received a request to reset your ConnectO password.</p>
+                     <p>Click the button below — this link expires in <strong>15 minutes</strong>.</p>
+                     <a href="{resetLink}" 
+                        style="display:inline-block;padding:12px 24px;background:#4F46E5;
+                               color:white;border-radius:6px;text-decoration:none;font-weight:bold">
+                         Reset Password
+                     </a>
+                     <p style="color:#888;font-size:12px;margin-top:20px">
+                         If you didn't request this, you can safely ignore this email.
+                     </p>
+                 </div>
+                 """
+            ));
+
+
+        return Result<object>.Ok("If this email is registered, a reset link has been sent.");
     }
 
-    public Task<Result> ResetPasswordAsync(ResetPasswordDto dto)
+    /// <summary>
+    /// 1=>look for the Token in The DB
+    /// 2=> three gate validation Token (exist => valid => Not Used or Expired)
+    /// 3=> Find the User With this Token in the DB
+    /// 4=> Reset the password
+    /// 5=> kill that Token in His Email  
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    public async Task<Result> ResetPasswordAsync(ResetPasswordDto dto)
     {
-        throw new NotImplementedException();
+        var repo = unitOfWork.GetRepository<PasswordResetToken, Guid>();
+        var all = await repo.GetAllAsync();
+        var resetToken = all.FirstOrDefault(t => t.Token == dto.Token);
+        //three gate validation 
+
+        if (resetToken is null)
+        {
+            return Result<object>.Fail(Error.NotFound("Auth.InvalidToken", "This reset link is invalid."));
+        }
+
+        if (resetToken.IsUsed)
+        {
+            return Result<object>.Fail(Error.NotFound("Auth.TokenUsed", "This reset link has already been used."));
+        }
+        //expired 
+        if (resetToken.ExpiresAt > DateTime.UtcNow)
+        {
+            return Result<object>.Fail(Error.NotFound("Auth.TokenExpired", "This reset link has expired. Please request a new one."));
+        }
+        var user =  await userManager.FindByEmailAsync(resetToken.UserId);
+        //check if user exist 
+        if (user is null)
+        {
+            return Result<object>.Fail(Error.NotFound(
+                "Auth.UserNotFound", "User not found."));
+        }
+        
+        // ④ Reset the password using ASP.NET Identity
+        // WHY RemovePasswordAsync + AddPasswordAsync instead of direct hash?
+        // Identity handles all the hashing, salting, and validation rules for us
+        var removeResult = await userManager.RemovePasswordAsync(user);
+        if (!removeResult.Succeeded)
+            return Result<object>.Fail(Error.BadRequest(
+                "Auth.PasswordResetFailed", "Failed to reset password."));
+
+        var addResult = await userManager.AddPasswordAsync(user, dto.NewPassword);
+        if (!addResult.Succeeded)
+            return Result<object>.Fail(
+                addResult.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList());
+        
+        //kill the Token used 
+        //check ot at the DB 
+        resetToken.IsUsed = true;
+        await  unitOfWork.SaveChangesAsync();
+        return Result<object>.Ok("Reset Password Success");
     }
 
     public Task<Result<LoginReturnDto>> VerifyOtpAsync(VerifyOtpDto dto)
