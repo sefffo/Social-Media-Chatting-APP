@@ -325,7 +325,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         ///   200 OK → "If this email is registered, a reset link has been sent."
         ///            (always 200 — never reveals email existence)
         /// </summary>
-        [HttpPost("forget-password")]
+        [HttpPost("forgot-password")]
         [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword([FromBody]string email)
         {
