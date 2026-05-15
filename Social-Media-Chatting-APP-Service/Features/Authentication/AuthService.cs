@@ -30,7 +30,8 @@ public class AuthService(
     IOptions<AppSettings> appSettings,
     BackgroundEmailQueue emailQueue,
     IEmailService emailService,
-    IOptions<JwtSettings> options) : IAuthService
+    IOptions<JwtSettings> options,
+    IOtpService otpService) : IAuthService
 {
     private static string GenerateRefreshToken()
     {
@@ -125,6 +126,14 @@ public class AuthService(
         {
             return Error.InvalidCredentials("Auth.InvalidCredentials", "Invalid Credentials");
         }
+        
+        if (!user.EmailConfirmed)
+        {
+            await otpService.GenerateAndSendAsync(user.Id, OtpPurpose.EmailVerification);
+            return Result<LoginReturnDto>.Fail(Error.BadRequest(
+                "Auth.EmailNotVerified",
+                "Please verify your email. A new code has been sent to your inbox."));
+        }
 
         // generate the AccessToken and Refresh Token 
         var (accessToken, jti) = await GenerateJWTTokenAsync(user);
@@ -177,6 +186,7 @@ public class AuthService(
             IsGoogleAccount = false,
             IsOnline = false,
             IsTwoFactorSetup = false,
+            EmailConfirmed = false
             // the bio and profile picture will be set later  depends on the user Service we gonna implement in phase 2
         };
         var result = await userManager.CreateAsync(user, dto.Password);
@@ -185,8 +195,15 @@ public class AuthService(
             return Result<object>.Fail(
                 result.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList());
         }
+        // ← Trigger OTP after successful registration
+        // User can't login until they verify — VerifyOtpAsync sets EmailConfirmed=true
+        await otpService.GenerateAndSendAsync(user.Id, OtpPurpose.EmailVerification);
 
-        return Result<Object>.Ok(result);
+        return Result<object>.Ok(new
+        {
+            UserId = user.Id,
+            Message = "Registration successful. Please check your email for your verification code."
+        });
     }
 
     public async Task<Result<LoginReturnDto>> RefreshTokenAsync(RefreshTokenDto refreshTokenDto)
@@ -406,11 +423,11 @@ public class AuthService(
             return Result<object>.Fail(Error.NotFound("Auth.TokenUsed", "This reset link has already been used."));
         }
         //expired 
-        if (resetToken.ExpiresAt > DateTime.UtcNow)
+        if (resetToken.ExpiresAt < DateTime.UtcNow)
         {
             return Result<object>.Fail(Error.NotFound("Auth.TokenExpired", "This reset link has expired. Please request a new one."));
         }
-        var user =  await userManager.FindByEmailAsync(resetToken.UserId);
+        var user =  await userManager.FindByIdAsync(resetToken.UserId);
         //check if user exist 
         if (user is null)
         {
@@ -438,16 +455,59 @@ public class AuthService(
         return Result<object>.Ok("Reset Password Success");
     }
 
-    public Task<Result<LoginReturnDto>> VerifyOtpAsync(VerifyOtpDto dto)
+    
+    /// <summary>
+    /// Orchestrates OTP verification + JWT issuance.
+    /// Step 1: Delegate code validation to OtpService (Redis logic lives there)
+    /// Step 2: If valid, confirm email + issue full JWT pair
+    /// AuthService never touches Redis — it only asks OtpService "is this code valid?"
+    /// </summary>
+    public  async Task<Result<LoginReturnDto>> VerifyOtpAsync(VerifyOtpDto dto)
     {
-        throw new NotImplementedException();
-    }
+        // ① Ask OtpService to validate the code — all Redis logic is inside there
+        var verifyResult = await otpService.VerifyAsync(
+            dto.UserId, dto.Code, OtpPurpose.EmailVerification);
 
-    public Task<Result> ResendOtpAsync(string userId)
-    {
-        throw new NotImplementedException();
-    }
+        // ② If OtpService says no → bubble the error up, never issue a token
+        if (!verifyResult.IsSuccess)
+            return Result<LoginReturnDto>.Fail(Error.BadRequest("Auth.BadRequest","Otp Failed"));
 
+        // ③ Code is valid — find the user to issue their JWT
+        var user = await userManager.FindByIdAsync(dto.UserId);
+        if (user is null)
+            return Result<LoginReturnDto>.Fail(
+                Error.NotFound("Auth.UserNotFound", "User not found."));
+
+        // ④ Mark email as confirmed — user proved they own this inbox
+        // WHY: Identity's EmailConfirmed flag gates certain operations
+        // (password reset, role assignments, etc.) — important to set it here
+        user.EmailConfirmed = true;
+        await userManager.UpdateAsync(user);
+
+        // ⑤ Issue the full JWT pair — same pattern as LoginAsync
+        var (accessToken, jti) = await GenerateJWTTokenAsync(user);
+        var rawRefreshToken = GenerateRefreshToken();
+        var hashedRefreshToken = ComputeSha256Hash(rawRefreshToken);
+
+        var repo = unitOfWork.GetRepository<RefreshToken, Guid>();
+        await repo.AddAsync(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            TokenHash = hashedRefreshToken,
+            JwtId = jti,
+            UserId = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        });
+
+        await unitOfWork.SaveChangesAsync();
+
+        return Result<LoginReturnDto>.Ok(new LoginReturnDto
+        {
+            AccessToken = accessToken,
+            RefreshToken = rawRefreshToken
+        });
+    }
+    
     public async Task<Result<LoginReturnDto>> HandleGoogleLoginAsync(string email, string name, string googleId)
     {
         // 1. Primary lookup by Google identity — correct first check

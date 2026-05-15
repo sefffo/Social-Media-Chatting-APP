@@ -55,9 +55,6 @@ public interface IAuthService
     
     
     Task<Result<LoginReturnDto>> VerifyOtpAsync(VerifyOtpDto dto);
-
-    
-    Task<Result> ResendOtpAsync(string userId);
     
     /// <summary>
     /// handling google Authentication 

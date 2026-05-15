@@ -19,6 +19,8 @@ namespace Social_Media_Chatting_APP_Service.Common
             var assembly = typeof(ServicesRegistration).Assembly;
 
 
+            
+            
             #region Email Service
 
             // Bind EmailSettings from appsettings.json
@@ -35,7 +37,7 @@ namespace Social_Media_Chatting_APP_Service.Common
             services.AddHostedService<EmailSenderBackgroundService>();
 
             #endregion
-
+            services.AddScoped<IOtpService,OtpService>();
 
             services.AddScoped<IAuthService, AuthService>();
             //services.AddScoped<IEmailService, EmailService>();
