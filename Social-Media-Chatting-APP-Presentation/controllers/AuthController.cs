@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s;
 using System.Security.Claims;
+using Social_Media_Chatting_APP_Domain.Entities;
 
 namespace Social_Media_Chatting_APP_Presentation.Controllers
 {
@@ -21,7 +22,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IAuthService authService) : ApiBaseController
+    public class AuthController(IAuthService authService,IOtpService otpService) : ApiBaseController
     {
         // ═══════════════════════════════════════════════════════════════════
         // REGISTER
@@ -227,5 +228,200 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
             var result = await authService.HandleGoogleLoginAsync(email, name, googleId);
             return HandleResult(result);
         }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // VERIFY OTP
+        // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Verifies the 6-digit OTP code submitted by the user.
+        ///
+        /// Used for TWO flows — the purpose is auto-detected from user state:
+        ///   1. EmailVerification: called after registration (EmailConfirmed=false)
+        ///   2. TwoFactorLogin: called after login when IsTwoFactorSetup=true
+        ///
+        /// On success → issues JWT + RefreshToken pair (user is fully authenticated)
+        /// On failure → returns specific error with attempts remaining
+        ///
+        /// REQUEST BODY:
+        ///   - UserId : returned from /register or /login (RequiresTwoFactor=true)
+        ///   - Code   : 6-digit code from the email
+        ///
+        /// RESPONSES:
+        ///   200 OK           → { accessToken, refreshToken }
+        ///   400 Bad Request  → wrong code / too many attempts / no active code
+        ///   404 Not Found    → userId doesn't exist
+        /// </summary>
+
+
+        [HttpPost("verify-otp")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyOTP([FromBody]  VerifyOtpDto dto)
+        {
+            var result = await authService.VerifyOtpAsync(dto);
+            return HandleResult(result);
+        }
+        
+        
+        
+        private async Task<OtpPurpose> ResolvePurposeAsync(string userId)
+        {
+            var emailConfirmed = await authService.IsEmailConfirmedAsync(userId);
+            return emailConfirmed
+                ? OtpPurpose.TwoFactorLogin
+                : OtpPurpose.EmailVerification;
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // RESEND OTP
+        // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Generates and sends a fresh OTP, invalidating any existing one.
+        ///
+        /// The purpose is inferred from user state — same logic as verify-otp.
+        /// Call this when the user didn't receive the code or it expired.
+        ///
+        /// WHY IOtpService directly (not IAuthService):
+        ///   Resending a code is pure OTP logic — no JWT, no session, no Identity.
+        ///   AuthService doesn't own this operation.
+        ///
+        /// REQUEST BODY:
+        ///   - UserId : the user to resend the code to
+        ///
+        /// RESPONSES:
+        ///   200 OK        → "Verification code sent successfully."
+        ///   404 Not Found → userId doesn't exist
+        /// </summary>
+        [HttpPost("resend-otp")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResendOtp([FromBody] ResendOtpDto dto)
+        {
+            // Determine purpose from user state — same rule as VerifyOtpAsync
+            // WHY here: OtpService.ResendOtpAsync takes a purpose parameter,
+            // but the controller doesn't know the user's state — it only has userId.
+            // We need to look up the user to decide which Redis key to overwrite.
+            // This is the one place where the controller does a tiny bit of routing logic.
+            var purpose = await ResolvePurposeAsync(dto.UserId);
+            var result = await otpService.ResendOtpAsync(dto.UserId, purpose);
+            return HandleResult(result);
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // FORGOT PASSWORD
+        // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Initiates the password reset flow by sending a reset link to the email.
+        ///
+        /// SECURITY: Always returns the same success message regardless of whether
+        /// the email is registered — prevents email enumeration attacks.
+        /// An attacker cannot use this endpoint to discover which emails exist.
+        ///
+        /// REQUEST BODY:
+        ///   - email : the email address to send the reset link to
+        ///
+        /// RESPONSES:
+        ///   200 OK → "If this email is registered, a reset link has been sent."
+        ///            (always 200 — never reveals email existence)
+        /// </summary>
+        [HttpPost("forget-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([FromBody]string email)
+        {
+            var result = await authService.ForgotPasswordAsync(email);
+            return HandleResult(result);
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // RESET PASSWORD
+        // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Completes the password reset flow using the token from the email link.
+        ///
+        /// The token is a 64-byte cryptographically secure random string
+        /// embedded in the reset URL: /reset-password?token=xxx
+        /// The frontend extracts it from the URL and sends it here.
+        ///
+        /// Three-gate validation: token exists → not used → not expired
+        /// After success the token is marked IsUsed=true (single-use).
+        ///
+        /// REQUEST BODY:
+        ///   - Token       : the raw token from the reset URL
+        ///   - NewPassword : the replacement password (Identity rules apply)
+        ///
+        /// RESPONSES:
+        ///   200 OK        → "Password reset successful"
+        ///   400 Bad Request → token already used or expired
+        ///   404 Not Found   → token doesn't exist / user not found
+        ///   422 Unprocessable → weak password (Identity validation)
+        /// </summary>
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            var result = await authService.ResetPasswordAsync(dto);
+            return HandleResult(result);
+        }
+        // ═══════════════════════════════════════════════════════════════════
+        // 2FA — ENABLE
+        // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Enables two-factor authentication for the authenticated user.
+        ///
+        /// [Authorize] required — only the account owner can enable their own 2FA.
+        /// userId is extracted from JWT claims — never trusted from the request body.
+        ///
+        /// After enabling: every future login will require an OTP code before
+        /// the JWT is issued. A security email is sent to alert the user.
+        ///
+        /// RESPONSES:
+        ///   200 OK        → "Two-factor authentication enabled successfully."
+        ///   400 Bad Request → already enabled
+        ///   401 Unauthorized → no valid JWT
+        ///   404 Not Found → user not found (shouldn't happen with valid JWT)
+        /// </summary>
+        [HttpPost("2fa/enable")]
+        [Authorize]
+        public async Task<IActionResult> EnableTwoFactor()
+        {
+            // Extract userId from JWT claims — never accept userId from the body
+            // WHY: If we trusted the body, any authenticated user could enable
+            // 2FA on someone else's account by passing a different userId
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var result = await authService.EnableTwoFactorAsync(userId);
+            return HandleResult(result);
+        }
+        // ═══════════════════════════════════════════════════════════════════
+        // 2FA — DISABLE
+        // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Disables two-factor authentication for the authenticated user.
+        ///
+        /// [Authorize] required — only the account owner can disable their own 2FA.
+        /// userId extracted from JWT claims — same security reasoning as enable.
+        ///
+        /// After disabling: login will return JWT directly without OTP step.
+        ///
+        /// RESPONSES:
+        ///   200 OK        → "Two-factor authentication disabled successfully."
+        ///   400 Bad Request → not enabled
+        ///   401 Unauthorized → no valid JWT
+        ///   404 Not Found → user not found
+        /// </summary>
+        [HttpPost("2fa/disable")]
+        [Authorize]
+        public async Task<IActionResult> DisableTwoFactor()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var result = await authService.DisableTwoFactorAsync(userId);
+            return HandleResult(result);
+        }
+
+        
+        
     }
 }

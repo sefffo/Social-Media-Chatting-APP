@@ -76,5 +76,11 @@ public interface IAuthService
     /// <returns></returns>
     Task<Result<LoginReturnDto>> HandleGoogleLoginAsync(string email, string name, string googleId);
 
+    
+    /// <summary>
+    /// Returns whether the user's email is confirmed.
+    /// Used by the controller to resolve OTP purpose for resend-otp.
+    /// </summary>
+    Task<bool> IsEmailConfirmedAsync(string userId);
 
 }

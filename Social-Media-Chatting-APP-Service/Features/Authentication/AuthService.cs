@@ -648,4 +648,11 @@ public class AuthService(
             RefreshToken = rawRefreshToken
         });
     }
+    
+    
+    public async Task<bool> IsEmailConfirmedAsync(string userId)
+    {
+        var user = await userManager.FindByIdAsync(userId);
+        return user?.EmailConfirmed ?? false;
+    }
 }
