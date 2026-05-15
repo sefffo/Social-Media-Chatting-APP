@@ -7,6 +7,10 @@ using Social_Media_Chatting_APP_Service.Common.MappingProfiles;
 using Social_Media_Chatting_APP_Service.Features.Authentication;
 using Social_Media_Chatting_APP_Service.FluentValidationMiddleWare;
 using Social_Media_Chatting_APP_ServiceAbstraction;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 
 namespace Social_Media_Chatting_APP_Service.Common
 {
@@ -18,7 +22,49 @@ namespace Social_Media_Chatting_APP_Service.Common
         {
             var assembly = typeof(ServicesRegistration).Assembly;
 
+            
+            #region Rate Limiting
 
+            services.AddRateLimiter(options =>
+            {
+                // Global rejection handler — returns 429 with a consistent JSON body
+                // WHY custom handler: default ASP.NET rate limit response is plain text
+                // We want the same JSON envelope shape as the rest of our API
+                options.OnRejected = async (context, cancellationToken) =>
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    context.HttpContext.Response.ContentType = "application/json";
+                    await context.HttpContext.Response.WriteAsync(
+                        """{"isSuccess":false,"errors":[{"code":"RateLimit.Exceeded","message":"Too many requests. Please slow down and try again later."}]}""",
+                        cancellationToken);
+                };
+
+                // ── STRICT: login, verify-otp, reset-password ──────────────────────
+                // 5 requests per minute per IP
+                // WHY Fixed Window and not Sliding Window?
+                // Fixed window is slightly more lenient (burst allowed at window boundary)
+                // but cheaper on memory — sliding window stores per-request timestamps.
+                // For auth endpoints fixed window is sufficient protection.
+                options.AddFixedWindowLimiter("StrictAuth", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 5;
+                    limiterOptions.Window = TimeSpan.FromMinutes(1);
+                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    limiterOptions.QueueLimit = 0; // no queuing — reject immediately
+                });
+
+                // ── GENEROUS: register, resend-otp, forgot-password, refresh, 2fa ──
+                // 20 requests per minute per IP
+                options.AddFixedWindowLimiter("GenerousAuth", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 20;
+                    limiterOptions.Window = TimeSpan.FromMinutes(1);
+                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    limiterOptions.QueueLimit = 0;
+                });
+            });
+
+            #endregion
             
             
             #region Email Service

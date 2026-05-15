@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s;
 using System.Security.Claims;
+using Microsoft.AspNetCore.RateLimiting;
 using Social_Media_Chatting_APP_Domain.Entities;
 
 namespace Social_Media_Chatting_APP_Presentation.Controllers
@@ -48,6 +49,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         /// </summary>
         [HttpPost("register")]
         [AllowAnonymous]
+        [EnableRateLimiting("GenerousAuth")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var result = await authService.RegisterAsync(dto);
@@ -81,6 +83,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         /// </summary>
         [HttpPost("login")]
         [AllowAnonymous]
+        [EnableRateLimiting("StrictAuth")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var result = await authService.LoginAsync(dto);
@@ -115,6 +118,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         /// </summary>
         [HttpPost("refresh")]
         [AllowAnonymous]
+        [EnableRateLimiting("GenerousAuth")]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
         {
             var result = await authService.RefreshTokenAsync(dto);
@@ -256,6 +260,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
 
         [HttpPost("verify-otp")]
         [AllowAnonymous]
+        [EnableRateLimiting("StrictAuth")]
         public async Task<IActionResult> VerifyOTP([FromBody]  VerifyOtpDto dto)
         {
             var result = await authService.VerifyOtpAsync(dto);
@@ -295,6 +300,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         /// </summary>
         [HttpPost("resend-otp")]
         [AllowAnonymous]
+        [EnableRateLimiting("GenerousAuth")]
         public async Task<IActionResult> ResendOtp([FromBody] ResendOtpDto dto)
         {
             // Determine purpose from user state — same rule as VerifyOtpAsync
@@ -327,7 +333,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         /// </summary>
         [HttpPost("forgot-password")]
         [AllowAnonymous]
-        
+        [EnableRateLimiting("GenerousAuth")]
         public async Task<IActionResult> ForgotPassword([FromBody]string email)
         {
             var result = await authService.ForgotPasswordAsync(email);
@@ -360,6 +366,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         /// </summary>
         [HttpPost("reset-password")]
         [AllowAnonymous]
+        [EnableRateLimiting("StrictAuth")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
             var result = await authService.ResetPasswordAsync(dto);
@@ -386,6 +393,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         /// </summary>
         [HttpPost("2fa/enable")]
         [Authorize]
+        [EnableRateLimiting("GenerousAuth")]
         public async Task<IActionResult> EnableTwoFactor()
         {
             // Extract userId from JWT claims — never accept userId from the body
@@ -415,6 +423,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         /// </summary>
         [HttpPost("2fa/disable")]
         [Authorize]
+        [EnableRateLimiting("GenerousAuth")]
         public async Task<IActionResult> DisableTwoFactor()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
