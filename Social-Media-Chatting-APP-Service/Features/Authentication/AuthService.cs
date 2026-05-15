@@ -556,7 +556,7 @@ public class AuthService(
 
         // ② If OtpService says no → bubble the error up, never issue a token
         if (!verifyResult.IsSuccess)
-            return Result<LoginReturnDto>.Fail(Error.BadRequest("Auth.BadRequest", "Otp Failed"));
+            return Result<LoginReturnDto>.Fail(verifyResult.Errors.ToList());
 
         // ④ Code verified — NOW safe to confirm email if this was EmailVerification
         // WHY here and not before: we only confirm after proving the code is correct
