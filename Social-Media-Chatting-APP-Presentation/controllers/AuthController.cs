@@ -327,6 +327,7 @@ namespace Social_Media_Chatting_APP_Presentation.Controllers
         /// </summary>
         [HttpPost("forgot-password")]
         [AllowAnonymous]
+        
         public async Task<IActionResult> ForgotPassword([FromBody]string email)
         {
             var result = await authService.ForgotPasswordAsync(email);
