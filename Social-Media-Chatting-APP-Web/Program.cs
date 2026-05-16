@@ -42,6 +42,17 @@ builder.Services.AddPersistenceServicesRegistration();
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis")!;
 
 // Singleton IConnectionMultiplexer — shared across the app (AuthService OTP/session storage)
+
+var redisConnection = builder.Configuration.GetSection("ConnectionStrings")["Redis"];
+var options = ConfigurationOptions.Parse(redisConnection);
+options.Ssl = true;
+options.AbortOnConnectFail = false;
+options.ConnectRetry = 5;
+options.ConnectTimeout = 10000;
+
+var multiplexer = ConnectionMultiplexer.Connect(options);
+builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+
 builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(redisConnectionString));
 
