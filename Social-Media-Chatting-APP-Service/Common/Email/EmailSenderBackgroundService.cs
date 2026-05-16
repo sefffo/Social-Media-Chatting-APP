@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Social_Media_Chatting_APP_Service.Common.Email;
+
 /// <summary>
 /// A long-running background service that continuously listens for queued email jobs
 /// and executes them asynchronously, decoupled from the HTTP request pipeline.
@@ -15,32 +16,40 @@ public class EmailSenderBackgroundService(
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        logger.LogInformation("[EmailWorker] Background email sender started.");
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 // BLOCKS here — waits idly (no CPU waste) until a job is dropped
                 // into the queue by any service (OtpService, AuthService, etc.)
-                // Once a job arrives, execution continues to the next line.
                 var job = await queue.DequeueAsync(stoppingToken);
-                
+
+                logger.LogInformation("[EmailWorker] Picked up email job, executing...");
+
                 // Execute the job — this calls emailService.SendAsync(...) internally.
-                // The job is a Func<CancellationToken, Task> so we pass stoppingToken
-                // to allow the job itself to be canceled if the app shuts down mid-send.
                 await job(stoppingToken);
+
+                logger.LogInformation("[EmailWorker] Email job completed successfully.");
             }
             catch (OperationCanceledException)
             {
+                logger.LogInformation("[EmailWorker] Shutdown requested, stopping email worker.");
                 break;
             }
             catch (Exception ex)
             {
-                // Any other error (SMTP failure, network timeout, wrong credentials, etc.)
-                // We log it but DO NOT rethrow — rethrowing would kill the entire worker
-                // and no future emails would ever be sent for the rest of the app's lifetime.
-                // By catching here, the loop continues and the next job is processed normally.
-                logger.LogError(ex, "Error occurred while sending background email.");
+                // Any SMTP failure (wrong credentials, network timeout, etc.) lands here.
+                // We log the FULL exception with stack trace so it is visible in the console.
+                // We do NOT rethrow — that would kill the worker permanently.
+                logger.LogError(ex,
+                    "[EmailWorker] FAILED to send email. " +
+                    "Exception type: {ExType} | Message: {ExMessage}",
+                    ex.GetType().Name, ex.Message);
             }
         }
+
+        logger.LogInformation("[EmailWorker] Background email sender stopped.");
     }
 }

@@ -1,4 +1,6 @@
-﻿using MailKit.Net.Smtp;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using Social_Media_Chatting_APP_ServiceAbstraction;
@@ -6,44 +8,71 @@ using Social_Media_Chatting_APP_ServiceAbstraction;
 namespace Social_Media_Chatting_APP_Service.Common.Email;
 
 public class EmailService(
-        IOptions<EmailSettings> emailSettings
-    ) : IEmailService   
+        IOptions<EmailSettings> emailSettings,
+        ILogger<EmailService> logger
+    ) : IEmailService
 {
     /// <summary>
     /// Build the email object → connect to Gmail → authenticate → hand off the email → disconnect.
+    /// Logs each step so SMTP failures are visible in the console instead of disappearing silently.
     /// </summary>
     public async Task SendAsync(string to, string subject, string body, bool isHtml = true)
     {
-        //implementing the Send Email Service 
-        
-        //get an object of the MimiKit message 
+        var settings = emailSettings.Value;
+        logger.LogInformation("[Email] Preparing to send '{Subject}' to {To} via {Host}:{Port}",
+            subject, to, settings.Host, settings.Port);
+
         var message = new MimeMessage();
-        
-        message.From.Add(new MailboxAddress(emailSettings.Value.FromName, emailSettings.Value.FromEmail));
-
+        message.From.Add(new MailboxAddress(settings.FromName, settings.FromEmail));
         message.To.Add(new MailboxAddress(to, to));
-            
         message.Subject = subject;
+        message.Body = new TextPart(isHtml ? "html" : "plain") { Text = body };
 
-        
-        message.Body = new TextPart(isHtml ? "html" : "plain")
-        {
-            Text = body
-        };
-        
-        //opening a Connection With the SMTP service 
         using var client = new SmtpClient();
-        //Opens a TCP connection to smtp.gmail.com:587 and upgrades it to encrypted using STARTTLS. This is the "knocking on the post office door" step.
-        await client.ConnectAsync(emailSettings.Value.Host, emailSettings.Value.Port, emailSettings.Value.UseSsl);
-        //Logs into the Gmail SMTP server with your app's credentials.
-        //This is where Google validates your App Password. If this fails, you get an AuthenticationException.
-        await client.AuthenticateAsync(emailSettings.Value.Username, emailSettings.Value.Password);
-        await client.SendAsync(message);
-        await client.DisconnectAsync(true);
 
+        try
+        {
+            logger.LogInformation("[Email] Connecting to SMTP {Host}:{Port} (StartTls)...",
+                settings.Host, settings.Port);
 
+            // SecureSocketOptions.StartTls forces STARTTLS on port 587 explicitly.
+            // The old bool overload (UseSsl=false) was ambiguous and could negotiate plain,
+            // which Gmail rejects silently.
+            await client.ConnectAsync(settings.Host, settings.Port, SecureSocketOptions.StartTls);
 
+            logger.LogInformation("[Email] Connected. Authenticating as {Username}...", settings.Username);
+            await client.AuthenticateAsync(settings.Username, settings.Password);
 
+            logger.LogInformation("[Email] Authenticated. Sending message to {To}...", to);
+            await client.SendAsync(message);
 
+            logger.LogInformation("[Email] Message sent successfully to {To}.", to);
+        }
+        catch (AuthenticationException authEx)
+        {
+            logger.LogError(authEx,
+                "[Email] AUTHENTICATION FAILED for {Username}. " +
+                "Verify the Gmail App Password is correct and 2FA is enabled on the account.",
+                settings.Username);
+            throw;
+        }
+        catch (SmtpCommandException smtpEx)
+        {
+            logger.LogError(smtpEx,
+                "[Email] SMTP COMMAND ERROR — StatusCode: {StatusCode}, Message: {SmtpMessage}",
+                smtpEx.StatusCode, smtpEx.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex,
+                "[Email] Unexpected error sending email to {To}.", to);
+            throw;
+        }
+        finally
+        {
+            if (client.IsConnected)
+                await client.DisconnectAsync(true);
+        }
     }
 }
