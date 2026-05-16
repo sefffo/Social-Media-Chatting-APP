@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Social_Media_Chatting_APP_SharedLibrary.Settings;
 
 namespace Social_Media_Chatting_APP_Service.Common
 {
@@ -71,7 +72,7 @@ namespace Social_Media_Chatting_APP_Service.Common
 
             // Bind EmailSettings from appsettings.json
             services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
-
+            services.Configure<AppSettings>(configuration.GetSection("URLS"));
             // Register the email service
             services.AddTransient<IEmailService, EmailService>();
 
