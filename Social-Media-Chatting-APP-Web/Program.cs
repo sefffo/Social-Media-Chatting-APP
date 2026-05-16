@@ -58,7 +58,11 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
 
 // SignalR Redis backplane — uses same Redis instance for multi-server broadcasting
 builder.Services.AddSignalR()
-    .AddStackExchangeRedis(redisConnectionString);
+    .AddStackExchangeRedis(redisConnectionString, opts =>
+    {
+        opts.Configuration.Ssl = true;
+        opts.Configuration.AbortOnConnectFail = false;
+    });
 
 #endregion
 
