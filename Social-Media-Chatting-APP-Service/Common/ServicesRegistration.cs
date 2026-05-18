@@ -9,6 +9,7 @@ using Social_Media_Chatting_APP_Service.FluentValidationMiddleWare;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using CloudinaryDotNet;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Social_Media_Chatting_APP_Service.Common.Upload;
@@ -27,6 +28,21 @@ namespace Social_Media_Chatting_APP_Service.Common
             #region Upload Service
             services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
             services.AddScoped<IUploadService, UploadService>();
+            // 2 — Initialize Cloudinary SDK and register as singleton
+            var cloudinarySettings = configuration
+                .GetSection("Cloudinary")
+                .Get<CloudinarySettings>();
+
+            var account = new Account(
+                cloudinarySettings.CloudName,
+                cloudinarySettings.ApiKey,
+                cloudinarySettings.ApiSecret    
+            );
+
+            var cloudinary = new Cloudinary(account);
+            cloudinary.Api.Secure = true; // always use https
+
+            services.AddSingleton(cloudinary);
             #endregion
             
             
