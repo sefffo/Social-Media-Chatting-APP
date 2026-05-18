@@ -83,9 +83,10 @@ public class UploadService(
 
             //open a file stream for upload 
 
-            using var fileStream = file.OpenReadStream();
+            await using var fileStream = file.OpenReadStream();
 
             var fileDescription = new FileDescription(file.FileName, fileStream);
+            //getting the Upload Params for the certain file type 
             var result = cloudinaryResourceType switch
             {
                 ResourceType.Image => await cloudinary.UploadAsync(new ImageUploadParams
@@ -112,7 +113,9 @@ public class UploadService(
             };
             if (result.Error != null)
                 return Error.BadRequest("Upload.Failed", result.Error.Message);
-
+            
+            
+            //Return the req DTO 
             var returnResult = new CloudinaryUploadResultDto()
             {
                 PublicId = result.PublicId,
@@ -134,6 +137,7 @@ public class UploadService(
     {
         try
         {
+            //check first if the file with that id is found in the Cloud DB 
             if (string.IsNullOrWhiteSpace(publicId))
             {
                 return Result<object>.Fail(Error.NotFound("Upload.NotFound", "File Not Found"));
