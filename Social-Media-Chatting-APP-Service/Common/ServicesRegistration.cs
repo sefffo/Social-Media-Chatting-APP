@@ -26,6 +26,7 @@ namespace Social_Media_Chatting_APP_Service.Common
             var assembly = typeof(ServicesRegistration).Assembly;
 
             #region Upload Service
+
             services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
             services.AddScoped<IUploadService, UploadService>();
             // 2 — Initialize Cloudinary SDK and register as singleton
@@ -36,16 +37,17 @@ namespace Social_Media_Chatting_APP_Service.Common
             var account = new Account(
                 cloudinarySettings.CloudName,
                 cloudinarySettings.ApiKey,
-                cloudinarySettings.ApiSecret    
+                cloudinarySettings.ApiSecret
             );
 
             var cloudinary = new Cloudinary(account);
             cloudinary.Api.Secure = true; // always use https
 
             services.AddSingleton(cloudinary);
+
             #endregion
-            
-            
+
+
             #region Rate Limiting
 
             services.AddRateLimiter(options =>
@@ -88,8 +90,8 @@ namespace Social_Media_Chatting_APP_Service.Common
             });
 
             #endregion
-            
-            
+
+
             #region Email Service
 
             // Bind EmailSettings from appsettings.json
@@ -106,7 +108,8 @@ namespace Social_Media_Chatting_APP_Service.Common
             services.AddHostedService<EmailSenderBackgroundService>();
 
             #endregion
-            services.AddScoped<IOtpService,OtpService>();
+
+            services.AddScoped<IOtpService, OtpService>();
             services.AddScoped<IAuthService, AuthService>();
             //services.AddScoped<IEmailService, EmailService>();
 
