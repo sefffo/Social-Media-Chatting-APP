@@ -162,6 +162,9 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("AllowMessageFromStrangers")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Bio")
                         .HasColumnType("text");
 
@@ -172,6 +175,9 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateOnly>("DateOfBirth")
+                        .HasColumnType("date");
+
                     b.Property<string>("DisplayName")
                         .HasColumnType("text");
 
@@ -180,6 +186,13 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeactivated")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsGoogleAccount")
@@ -193,6 +206,9 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
 
                     b.Property<DateTime?>("LastSeen")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("text");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
@@ -220,8 +236,17 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                     b.Property<string>("ProfilePicture")
                         .HasColumnType("text");
 
+                    b.Property<string>("ProfilePicturePublicId")
+                        .HasColumnType("text");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
+
+                    b.Property<bool>("ShowLastSeen")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShowOnlineStatus")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
@@ -229,6 +254,9 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Website")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

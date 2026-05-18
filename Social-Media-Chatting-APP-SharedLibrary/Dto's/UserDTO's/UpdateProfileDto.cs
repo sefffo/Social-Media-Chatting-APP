@@ -2,8 +2,8 @@
 
 public class UpdateProfileDto
 {
-    public string DisplayName { get; set; }
-    public string Bio { get; set; }
+    public string? DisplayName { get; set; }
+    public string? Bio { get; set; }
     public string? Website { get; set; }
     public string? Location { get; set; }
     public bool? ShowOnlineStatus { get; set; }
