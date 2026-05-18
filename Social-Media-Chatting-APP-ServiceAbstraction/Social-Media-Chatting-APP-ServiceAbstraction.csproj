@@ -16,4 +16,9 @@
     <Folder Include="Drawings\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="CloudinaryDotNet" Version="1.29.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.10" />
+  </ItemGroup>
+
 </Project>

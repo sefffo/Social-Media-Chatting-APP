@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Social_Media_Chatting_APP_Service.Common.Upload;
 using Social_Media_Chatting_APP_SharedLibrary.Settings;
 
 namespace Social_Media_Chatting_APP_Service.Common
@@ -23,6 +24,11 @@ namespace Social_Media_Chatting_APP_Service.Common
         {
             var assembly = typeof(ServicesRegistration).Assembly;
 
+            #region Upload Service
+            services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
+            services.AddScoped<IUploadService, UploadService>();
+            #endregion
+            
             
             #region Rate Limiting
 
@@ -85,7 +91,6 @@ namespace Social_Media_Chatting_APP_Service.Common
 
             #endregion
             services.AddScoped<IOtpService,OtpService>();
-
             services.AddScoped<IAuthService, AuthService>();
             //services.AddScoped<IEmailService, EmailService>();
 
