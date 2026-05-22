@@ -13,7 +13,7 @@ public class UploadService(
     Cloudinary cloudinary
 ) : IUploadService
 {
-    //key value pair DS ?
+    //key value pair Data Structure? Dictionary
 
 
     private static readonly Dictionary<FileResourceType, List<string>> AllowedExtensions = new()
