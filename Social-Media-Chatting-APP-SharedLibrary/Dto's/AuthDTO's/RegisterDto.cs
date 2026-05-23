@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Social_Media_Chatting_APP_SharedLibrary.Dto_s;
 
@@ -19,4 +19,6 @@ public class RegisterDto
     [Required]
     [MinLength(3), MaxLength(30)]
     public string DisplayName  { set; get; }
+    [Phone]
+    public string? PhoneNumber { set; get; }
 }

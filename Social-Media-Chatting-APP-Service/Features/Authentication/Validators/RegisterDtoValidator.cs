@@ -6,12 +6,6 @@ namespace Social_Media_Chatting_APP_Service.Features.Authentication.Validators;
 /// <summary>
 /// Validates RegisterDto before it reaches AuthService.
 /// Runs automatically via ValidationBehavior in the MediatR pipeline.
-///
-/// WHY duplicate some rules that are already on the DTO via DataAnnotations?
-/// DataAnnotations fire at the model-binding layer (MVC).
-/// FluentValidation fires inside our MediatR pipeline — it gives us
-/// richer rules (Regex, cross-field), consistent error shapes, and
-/// testability without spinning up the full HTTP stack.
 /// </summary>
 public class RegisterDtoValidator : AbstractValidator<RegisterDto>
 {
@@ -40,13 +34,13 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
             .Matches("[0-9]").WithMessage("Password must contain at least one number.")
             .Matches("[^a-zA-Z0-9]").WithMessage("Password must contain at least one special character.");
 
-        // Cross-field rule: ConfirmPassword must match Password
-        // WHY here and not just DataAnnotations [Compare]?
-        // [Compare] fires at MVC binding — FluentValidation fires in our pipeline.
-        // Having it here means it's caught at the same layer as all other rules
-        // and returns the same error envelope shape.
         RuleFor(x => x.ConfirmPassword)
             .NotEmpty().WithMessage("Confirm password is required.")
             .Equal(x => x.Password).WithMessage("Passwords do not match.");
+
+        RuleFor(x => x.PhoneNumber)
+            .Matches(@"^\+?[1-9]\d{6,14}$")
+            .WithMessage("Invalid phone number format. Use international format e.g. +201234567890.")
+            .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber));
     }
 }
