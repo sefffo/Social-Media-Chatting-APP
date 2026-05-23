@@ -25,14 +25,15 @@
 5. [Features](#-features)
 6. [Project Structure](#-project-structure)
 7. [Authentication & Authorization](#-authentication--authorization)
-8. [Real-Time (SignalR)](#-real-time-signalr)
-9. [Caching Strategy](#-caching-strategy)
-10. [Media Uploads](#-media-uploads-cloudinary)
-11. [Running Locally](#-running-locally)
-12. [Docker Deployment](#-docker-deployment)
-13. [API Reference](#-api-reference)
-14. [Roadmap](#-roadmap)
-15. [What I Learned](#-what-i-learned)
+8. [Email Service](#-email-service)
+9. [Real-Time (SignalR)](#-real-time-signalr)
+10. [Caching Strategy](#-caching-strategy)
+11. [Media Uploads](#-media-uploads-cloudinary)
+12. [Running Locally](#-running-locally)
+13. [Docker Deployment](#-docker-deployment)
+14. [API Reference](#-api-reference)
+15. [Roadmap](#-roadmap)
+16. [What I Learned](#-what-i-learned)
 
 ---
 
@@ -263,6 +264,26 @@ Register → OTP generated → stored in Redis (TTL: 10min) → sent via SMTP ba
 
 - OTP auto-expires in Redis — zero cleanup cron jobs needed
 - Background email queue (`BackgroundEmailQueue`) prevents SMTP from blocking the HTTP response
+
+---
+
+## ✉️ Email Service
+
+### How it works
+- Auth flows call `OtpService.GenerateAndSendAsync(...)` to create a 6-digit code and send it to the user.
+- `OtpService` stores the OTP in Redis with a 10-minute TTL and enforces a 3-attempt limit.
+- The actual email send is asynchronous: services enqueue a job into `BackgroundEmailQueue` and return immediately.
+- `EmailSenderBackgroundService` runs in the background, dequeues jobs, and calls `EmailService.SendAsync(...)`.
+- `EmailService` uses MailKit with STARTTLS to connect to Gmail (`smtp.gmail.com:587`), authenticate, and send HTML emails.
+- Password reset uses `AuthService.ForgotPasswordAsync(...)` to generate a short-lived reset token and send the reset link by email.
+
+### Configuration
+- Configure SMTP and sender details in `Social-Media-Chatting-APP-Web/appsettings.json` under `EmailSettings`.
+- Gmail requires 2FA and an App Password (use the App Password in `EmailSettings:Password`).
+- For production, store secrets in a secure config provider and do not commit them to git.
+
+### Screenshot
+![Verification email screenshot](docs/screenshots/email-verification.png)
 
 ---
 
