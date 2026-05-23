@@ -2,15 +2,15 @@
 
 # 💬 ConnectO — Social Media & Chatting API
 
-### Production-grade ASP.NET Core 9 Web API — Clean Architecture, CQRS + MediatR, SignalR Real-Time, JWT Auth, Redis, Cloudinary, Docker
+### Production-grade ASP.NET Core 10 Web API — Clean Architecture, CQRS + MediatR, SignalR Real-Time, JWT Auth, Redis, Cloudinary, Docker
 
-[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-13.0-239120?logo=c-sharp&logoColor=white)](https://learn.microsoft.com/en-us/dotnet/csharp/)
 [![SQL Server](https://img.shields.io/badge/SQL%20Server-2022-CC2927?logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/en-us/sql-server)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 [![SignalR](https://img.shields.io/badge/SignalR-Real--Time-0078D4?logo=microsoftazure&logoColor=white)](https://learn.microsoft.com/en-us/aspnet/core/signalr/introduction)
 [![Cloudinary](https://img.shields.io/badge/Cloudinary-Media-3448C5?logo=cloudinary&logoColor=white)](https://cloudinary.com/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-saif31%2Fconnecto--api-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://hub.docker.com/)
 
 </div>
 
@@ -104,8 +104,8 @@ ConnectO is a full-featured social media & real-time chatting backend — built 
 
 | Layer | Technology |
 |---|---|
-| **Runtime** | ASP.NET Core 9 · C# 13 |
-| **Data** | Entity Framework Core 9 · SQL Server 2022 |
+| **Runtime** | ASP.NET Core 10 · C# 13 |
+| **Data** | Entity Framework Core 10 · SQL Server 2022 |
 | **Identity** | ASP.NET Core Identity |
 | **Cache** | Redis 7 (StackExchange.Redis) |
 | **Real-Time** | SignalR |
@@ -356,7 +356,7 @@ POST /api/profile/picture  (multipart/form-data)
 ## 🏃 Running Locally
 
 ### Prerequisites
-- [.NET 9 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - Docker Desktop (for SQL Server + Redis)
 
 ### Option A — Docker Compose (easiest)
@@ -407,7 +407,7 @@ EmailSettings__Password=your-app-password
 
 ```dockerfile
 # Stage 1: SDK image (~800MB) — compiles the code
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy .csproj files FIRST, restore, THEN copy source.
@@ -420,7 +420,7 @@ COPY . .
 RUN dotnet publish Social-Media-Chatting-APP-Web/... -c Release -o /app/publish --no-restore
 
 # Stage 2: Runtime image (~220MB) — only what's needed to run
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
