@@ -35,8 +35,8 @@ public class PendingRequestsQueryHandler(
         var userDict = await userManager.Users
             .Where(u => otherIds.Contains(Guid.Parse(u.Id)))
             .ToDictionaryAsync(u => Guid.Parse(u.Id), cancellationToken);
-        
-        
+
+
         var result = pendingRequests.Select(f =>
         {
             var otherId = f.RequestId == request.CurrentUserId
@@ -46,9 +46,9 @@ public class PendingRequestsQueryHandler(
             return new FriendRequestItemDto
             {
                 FriendshipId = f.Id,
-                User         = mapper.Map<PublicUserProfileDto>(userDict[otherId]),
-                SentAt       = f.CreatedAt,
-                Direction    = f.AddresseeId == request.CurrentUserId
+                User = mapper.Map<PublicUserProfileDto>(userDict[otherId]),
+                SentAt = f.CreatedAt,
+                Direction = f.AddresseeId == request.CurrentUserId
                     ? "Incoming"
                     : "Outgoing"
             };
