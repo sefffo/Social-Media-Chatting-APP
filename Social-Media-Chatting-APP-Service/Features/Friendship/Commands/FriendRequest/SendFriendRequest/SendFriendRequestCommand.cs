@@ -4,4 +4,4 @@ using Social_Media_Chatting_APP_SharedLibrary.SharedResponse;
 
 namespace Social_Media_Chatting_APP_Service.Features.Friendship.Commands.FriendRequest.SendFriendRequest;
 
-public record SendFriendRequestCommand(Guid CurrentUserId,Guid AddresseeId) : IRequest<Result<SendFriendRequestDto>>;
+public record SendFriendRequestCommand(Guid CurrentUserId,Guid AddresseeId) : IRequest<Result<FriendshipActionResultDto>>;

@@ -11,9 +11,9 @@ namespace Social_Media_Chatting_APP_Service.Features.Friendship.Commands.FriendR
 public class SendFriendRequestCommandHandler(
     IUnitOfWork unitOfWork,
     IMapper mapper
-) : IRequestHandler<SendFriendRequestCommand, Result<SendFriendRequestDto>>
+) : IRequestHandler<SendFriendRequestCommand, Result<FriendshipActionResultDto>>
 {
-    public async Task<Result<SendFriendRequestDto>> Handle(SendFriendRequestCommand request,
+    public async Task<Result<FriendshipActionResultDto>> Handle(SendFriendRequestCommand request,
         CancellationToken cancellationToken)
     {
         var repo = unitOfWork.GetRepository<Social_Media_Chatting_APP_Domain.Entities.Friendship, Guid>();
@@ -60,5 +60,20 @@ public class SendFriendRequestCommandHandler(
             var mappedReverseResult = mapper.Map<FriendshipActionResultDto>(reverseRequest);
             return Result<FriendshipActionResultDto>.Ok(mappedReverseResult);
         }
+        var friendship = new Social_Media_Chatting_APP_Domain.Entities.Friendship
+        {
+            Id = Guid.NewGuid(),
+            RequestId = request.CurrentUserId,
+            AddresseeId = request.AddresseeId,
+            Status = FriendshipStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        
+        await repo.AddAsync(friendship);
+        await unitOfWork.SaveChangesAsync();
+        var mappedResult = mapper.Map<FriendshipActionResultDto>(friendship);
+        return Result<FriendshipActionResultDto>.Ok(mappedResult);
+
     }
 }
