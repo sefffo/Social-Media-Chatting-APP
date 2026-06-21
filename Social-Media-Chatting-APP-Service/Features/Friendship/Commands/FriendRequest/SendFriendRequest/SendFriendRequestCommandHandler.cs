@@ -28,6 +28,16 @@ public class SendFriendRequestCommandHandler(
 
             if (result.Status == FriendshipStatus.Pending)
                 return Error.BadRequest("Friendship.AlreadyPending", "A friend request already exists.");
+            
+            if(result.Status == FriendshipStatus.Blocked)
+            {
+                if (result.BlockedById == request.CurrentUserId)
+                    return Error.Forbidden("Friendship.YouBlocked", 
+                        "You have blocked this user. Unblock them to interact.");
+
+                return Error.Forbidden("Friendship.BlockedByUser", 
+                    "This user has blocked you.");
+            }
 
             if (result.Status == FriendshipStatus.Rejected)
             {

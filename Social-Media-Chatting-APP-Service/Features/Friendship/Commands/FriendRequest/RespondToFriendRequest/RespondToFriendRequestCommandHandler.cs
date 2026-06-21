@@ -35,7 +35,6 @@ public class RespondToFriendRequestCommandHandler(
 
         friendship.Status = Enum.Parse<FriendshipStatus>(request.Decision);
         friendship.UpdatedAt = DateTime.UtcNow;
-        friendship.CreatedAt = DateTime.UtcNow;
         repo.Update(friendship);
         await unitOfWork.SaveChangesAsync();
         var mappedResult = mapper.Map<FriendshipActionResultDto>(friendship);
