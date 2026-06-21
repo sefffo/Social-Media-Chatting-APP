@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,17 +21,19 @@ public class FriendshipController(ISender sender) : ApiBaseController
 {
     [HttpPost("send/{targetUserId}")]
     [Authorize]
-    [RedisCacheInvalidate("friendship-requests", "targetUserId")]
+    [RedisCacheInvalidate("friendship-requests-incoming", "targetUserId")]
+    [RedisCacheInvalidate("friendship-requests-outgoing", "targetUserId")]
     public async Task<ActionResult<FriendshipActionResultDto>> SendFriendRequest(Guid targetUserId)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new SendFriendRequestCommand(userId, targetUserId));
         return HandleResult(result);
     }
 
     [HttpPut("respond/{friendshipId}")]
     [Authorize]
-    [RedisCacheInvalidateWithResponse("friendship-requests")]
+    [RedisCacheInvalidateWithResponse("friendship-requests-incoming")]
+    [RedisCacheInvalidateWithResponse("friendship-requests-outgoing")]
     public async Task<ActionResult<FriendshipActionResultDto>> RespondToFriendRequest(
         Guid friendshipId,
         [FromBody] RespondToFriendRequestDto dto)
@@ -47,38 +49,39 @@ public class FriendshipController(ISender sender) : ApiBaseController
     [RedisCacheInvalidate("friendship-friends", "targetUserId")]
     public async Task<ActionResult<FriendshipActionResultDto>> UnfriendUser(Guid targetUserId)
     {
-        var UserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-        var result = await sender.Send(new UnfriendCommand(UserId, targetUserId));
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await sender.Send(new UnfriendCommand(userId, targetUserId));
         return HandleResult(result);
     }
 
     [HttpPost("block/{targetUserId}")]
-    [RedisCacheInvalidate("friendship-friends", "targetUserId")]
-    [RedisCacheInvalidate("friendship-requests", "targetUserId")]
     [Authorize]
+    [RedisCacheInvalidate("friendship-requests-incoming", "targetUserId")]
+    [RedisCacheInvalidate("friendship-requests-outgoing", "targetUserId")]
+    [RedisCacheInvalidate("friendship-friends", "targetUserId")]
     public async Task<ActionResult<FriendshipActionResultDto>> BlockUser(Guid targetUserId)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-        var Result = await sender.Send(new BlockUserCommand(userId, targetUserId));
-        return HandleResult(Result);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await sender.Send(new BlockUserCommand(userId, targetUserId));
+        return HandleResult(result);
     }
 
     [HttpDelete("unblock/{targetUserId}")]
-    [RedisCacheInvalidate("friendship-blocked", "targetUserId")] //to check the block json cached 
     [Authorize]
+    [RedisCacheInvalidate("friendship-blocked", "targetUserId")]
     public async Task<ActionResult<FriendshipActionResultDto>> UnblockUser(Guid targetUserId)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-        var Result = await sender.Send(new UnblockUserCommand(userId, targetUserId));
-        return HandleResult(Result);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await sender.Send(new UnblockUserCommand(userId, targetUserId));
+        return HandleResult(result);
     }
 
     [HttpGet("friends")]
-    [RedisCache("friendship-friends", ttlSeconds: 1000)]
     [Authorize]
+    [RedisCache("friendship-friends", ttlSeconds: 1000)]
     public async Task<ActionResult<IEnumerable<FriendListItemDto>>> GetFriends()
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new GetFriendsQuery(userId));
         return HandleResult(result);
     }
@@ -88,7 +91,7 @@ public class FriendshipController(ISender sender) : ApiBaseController
     [RedisCache("friendship-blocked", ttlSeconds: 1000)]
     public async Task<ActionResult<IEnumerable<BlockedUserItemDto>>> GetBlocked()
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new GetBlockedUsersQuery(userId));
         return HandleResult(result);
     }
@@ -96,19 +99,18 @@ public class FriendshipController(ISender sender) : ApiBaseController
     [HttpGet("requests/incoming")]
     [Authorize]
     [RedisCache("friendship-requests-incoming", ttlSeconds: 300)]
-    public async Task<ActionResult<FriendshipActionResultDto>> GetFriendRequests()
+    public async Task<ActionResult<IEnumerable<FriendRequestItemDto>>> GetIncomingRequests()
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new PendingRequestsQuery(userId));
-
 
         if (!result.IsSuccess)
             return HandleResult(result);
 
-        var incomingResult = result.GetValueOrThrow().Where(i => i.Direction == "Incoming"
-        );
+        var incoming = result.GetValueOrThrow()
+            .Where(r => r.Direction == "Incoming");
 
-        return Ok(incomingResult);
+        return Ok(incoming);
     }
 
     [HttpGet("requests/outgoing")]
