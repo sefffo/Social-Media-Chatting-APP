@@ -1,4 +1,5 @@
-﻿using Social_Media_Chatting_APP_Domain.Entities;
+﻿using System.Linq.Expressions;
+using Social_Media_Chatting_APP_Domain.Entities;
 
 namespace Social_Media_Chatting_APP_Domain.Interfaces
 {
@@ -24,5 +25,9 @@ namespace Social_Media_Chatting_APP_Domain.Interfaces
         void Remove(TEntity entity);
 
         void Update(TEntity entity);
+        
+        Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate);
+        
+        Task<IEnumerable<TEntity>> FindAllAsync(Expression<Func<TEntity, bool>> predicate);
     }
 }

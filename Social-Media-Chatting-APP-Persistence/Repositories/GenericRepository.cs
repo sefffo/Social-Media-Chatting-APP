@@ -1,15 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using Social_Media_Chatting_APP_Domain.Entities;
 using Social_Media_Chatting_APP_Domain.Interfaces;
 using Social_Media_Chatting_APP_Persistence.DbContext;
 
 namespace Social_Media_Chatting_APP_Persistence.Repositories
 {
-    public class GenericRepository<TEntity, TKey>(Social_Media_Chatting_APP_DbContext context) : IGenericRepository<TEntity, TKey> where TEntity : BaseEntity<TKey>
+    public class GenericRepository<TEntity, TKey>(Social_Media_Chatting_APP_DbContext context)
+        : IGenericRepository<TEntity, TKey> where TEntity : BaseEntity<TKey>
     {
+        private IGenericRepository<TEntity, TKey> _genericRepositoryImplementation;
+
         public async Task<IEnumerable<TEntity>> GetAllAsync()
         {
-
             //bad Practice
 
             //if (condition != null)
@@ -27,7 +30,6 @@ namespace Social_Media_Chatting_APP_Persistence.Repositories
             //}
 
             return await context.Set<TEntity>().ToListAsync();
-
         }
 
         public async Task<TEntity> GetByIdAsync(TKey id)
@@ -44,10 +46,18 @@ namespace Social_Media_Chatting_APP_Persistence.Repositories
 
 
         public void Remove(TEntity entity)
-        => context.Set<TEntity>().Remove(entity);
+            => context.Set<TEntity>().Remove(entity);
 
         public void Update(TEntity entity)
-        => context.Set<TEntity>().Update(entity);
+            => context.Set<TEntity>().Update(entity);
+
+        public async Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate)
+            => await context.Set<TEntity>().FirstOrDefaultAsync(predicate);
+
+
+        public async Task<IEnumerable<TEntity>> FindAllAsync(Expression<Func<TEntity, bool>> predicate)
+            =>  await context.Set<TEntity>().Where(predicate).ToListAsync();
+
 
         //public async Task<IEnumerable<TEntity>> GetAllAsync(ISpecifications<TEntity, Tkey> specifications)
         //{
@@ -68,8 +78,6 @@ namespace Social_Media_Chatting_APP_Persistence.Repositories
         //    //    return await query.ToListAsync();
         //    //}
         //    //return await query.ToListAsync();
-
-
 
 
         //    var Query = SpecificationsEvaluator.CreateQuery(context.Set<TEntity>().AsQueryable(), specifications);
