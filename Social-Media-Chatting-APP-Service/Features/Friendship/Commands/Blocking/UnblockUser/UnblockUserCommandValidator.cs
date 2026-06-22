@@ -7,11 +7,11 @@ public class UnblockUserCommandValidator : AbstractValidator<UnblockUserCommand>
 {
     public UnblockUserCommandValidator()
     {
-        RuleFor(x => x.CurrentUserId)
+        RuleFor(x => x.CurrentUser)
             .NotEmpty().WithMessage("Current user ID is required.");
 
-        RuleFor(x => x.TargetUserId)
+        RuleFor(x => x.TargetedUserId)
             .NotEmpty().WithMessage("Target user ID is required.")
-            .NotEqual(x => x.CurrentUserId).WithMessage("You cannot unblock yourself.");
+            .NotEqual(x => x.CurrentUser).WithMessage("You cannot unblock yourself.");
     }
 }

@@ -10,7 +10,7 @@ public class BlockUserCommandValidator : AbstractValidator<BlockUserCommand>
         RuleFor(x => x.CurrentUserId)
             .NotEmpty().WithMessage("Current user ID is required.");
 
-        RuleFor(x => x.TargetUserId)
+        RuleFor(x => x.TargetedUserId)
             .NotEmpty().WithMessage("Target user ID is required.")
             .NotEqual(x => x.CurrentUserId).WithMessage("You cannot block yourself.");
     }

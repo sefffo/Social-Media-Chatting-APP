@@ -10,7 +10,7 @@ public class UnfriendCommandValidator : AbstractValidator<UnfriendCommand>
         RuleFor(x => x.CurrentUserId)
             .NotEmpty().WithMessage("Current user ID is required.");
 
-        RuleFor(x => x.TargetUserId)
+        RuleFor(x => x.TargetedUserId)
             .NotEmpty().WithMessage("Target user ID is required.")
             .NotEqual(x => x.CurrentUserId).WithMessage("You cannot unfriend yourself.");
     }
