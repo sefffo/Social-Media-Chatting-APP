@@ -52,10 +52,12 @@ public class GetFriendsQueryHandler(
                 ? f.AddresseeId
                 : f.RequestId)
             .ToList();
+        
+        var friendIdsStrings = friendIds.Select(id => id.ToString()).ToList();
 
         // Step 3 — one DB call to load all friend profiles into a dictionary
         var userDict = await userManager.Users
-            .Where(u => friendIds.Contains(Guid.Parse(u.Id)))
+            .Where(u => friendIdsStrings.Contains(u.Id))
             .ToDictionaryAsync(u => Guid.Parse(u.Id), cancellationToken);
         
         var result = friendships.Select(f =>
