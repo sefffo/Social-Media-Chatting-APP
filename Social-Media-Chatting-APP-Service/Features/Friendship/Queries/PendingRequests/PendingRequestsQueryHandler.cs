@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,36 +21,30 @@ public class PendingRequestsQueryHandler(
     {
         var repo = unitOfWork.GetRepository<Social_Media_Chatting_APP_Domain.Entities.Friendship, Guid>();
 
+        // Only fetch requests where current user is the addressee (incoming) with Pending status
         var pendingRequests = await repo.FindAllAsync(f =>
-            (
-                f.AddresseeId == request.CurrentUserId ||
-                f.RequestId == request.CurrentUserId && f.Status == FriendshipStatus.Pending
-            )
+            f.AddresseeId == request.CurrentUserId &&
+            f.Status == FriendshipStatus.Pending
         );
 
+        // Collect requester IDs as strings for EF-translatable query
+        var requesterIdStrings = pendingRequests
+            .Select(f => f.RequestId.ToString())
+            .ToList();
 
-        var otherIds = pendingRequests.Select(f => f.AddresseeId == request.CurrentUserId ? f.RequestId : f.AddresseeId
-        ).ToList();
-
+        // Single DB call — load all requester profiles into a dictionary for O(1) lookup
         var userDict = await userManager.Users
-            .Where(u => otherIds.Contains(Guid.Parse(u.Id)))
+            .Where(u => requesterIdStrings.Contains(u.Id))
             .ToDictionaryAsync(u => Guid.Parse(u.Id), cancellationToken);
-
 
         var result = pendingRequests.Select(f =>
         {
-            var otherId = f.RequestId == request.CurrentUserId
-                ? f.AddresseeId
-                : f.RequestId;
-
             return new FriendRequestItemDto
             {
                 FriendshipId = f.Id,
-                User = mapper.Map<PublicUserProfileDto>(userDict[otherId]),
+                User = mapper.Map<PublicUserProfileDto>(userDict[f.RequestId]),
                 SentAt = f.CreatedAt,
-                Direction = f.AddresseeId == request.CurrentUserId
-                    ? "Incoming"
-                    : "Outgoing"
+                Direction = "Incoming"
             };
         }).ToList();
 
