@@ -193,8 +193,9 @@ public class AuthService(
             IsGoogleAccount = false,
             IsOnline = false,
             IsTwoFactorSetup = false,
-            EmailConfirmed = false
-            // the bio and profile picture will be set later  depends on the user Service we gonna implement in phase 2
+            EmailConfirmed = false,
+            Gender = dto.Gender
+            // the bio and profile picture will be set later depends on the user Service we gonna implement in phase 2
         };
         var result = await userManager.CreateAsync(user, dto.Password);
         if (!result.Succeeded)

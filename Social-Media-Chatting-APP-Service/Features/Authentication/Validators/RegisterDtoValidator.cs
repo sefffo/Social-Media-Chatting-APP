@@ -42,5 +42,9 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
             .Matches(@"^\+?[1-9]\d{6,14}$")
             .WithMessage("Invalid phone number format. Use international format e.g. +201234567890.")
             .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber));
+        RuleFor(x => x.Gender)
+            .NotEmpty().WithMessage("Gender is required.")
+            .Must(g => new[] { "Male", "Female", "Other" }.Contains(g))
+            .WithMessage("Gender must be one of: Male, Female, Other.");
     }
 }

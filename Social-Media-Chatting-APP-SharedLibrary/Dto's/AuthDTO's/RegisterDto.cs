@@ -21,4 +21,6 @@ public class RegisterDto
     public string DisplayName  { set; get; }
     [Phone]
     public string? PhoneNumber { set; get; }
+    [Required]
+    public string Gender { get; set; }
 }
