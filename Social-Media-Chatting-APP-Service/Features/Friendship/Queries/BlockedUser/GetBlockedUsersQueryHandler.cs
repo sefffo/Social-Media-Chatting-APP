@@ -31,10 +31,12 @@ public class GetBlockedUsersQueryHandler(
                 ? f.AddresseeId
                 : f.RequestId)
             .ToList();
+        
+        var blockedIdsStrings = blockedIds.Select(id => id.ToString()).ToList();
 
         // Step 3 — one DB call to load all profiles
         var userDict = await userManager.Users
-            .Where(u => blockedIds.Contains(Guid.Parse(u.Id)))
+            .Where(u => blockedIdsStrings.Contains(u.Id))
             .ToDictionaryAsync(u => Guid.Parse(u.Id), cancellationToken);
 
         // Step 4 — build the result
