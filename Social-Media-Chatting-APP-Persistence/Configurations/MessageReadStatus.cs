@@ -11,7 +11,7 @@ public class MessageReadStatus : IEntityTypeConfiguration<Social_Media_Chatting_
 
         // Composite PK
         builder.HasKey(mrs => new { mrs.MessageId, mrs.UserId });
-
+        builder.Property(mrs => mrs.ReadAt).IsRequired();
 
         builder.HasOne(mrs => mrs.Message)
             .WithMany(mrs => mrs.ReadStatuses)
