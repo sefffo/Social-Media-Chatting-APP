@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Social_Media_Chatting_APP_Persistence.Configurations;
 
-public class MessageReadStatus : IEntityTypeConfiguration<Social_Media_Chatting_APP_Domain.Entities.MessageReadStatus>
+public class MessageReadStatusConfiguration : IEntityTypeConfiguration<Social_Media_Chatting_APP_Domain.Entities.MessageReadStatus>
 {
     public void Configure(EntityTypeBuilder<Social_Media_Chatting_APP_Domain.Entities.MessageReadStatus> builder)
     {
