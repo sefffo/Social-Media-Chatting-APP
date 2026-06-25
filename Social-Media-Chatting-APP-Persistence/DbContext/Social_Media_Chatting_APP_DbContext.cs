@@ -19,5 +19,9 @@ namespace Social_Media_Chatting_APP_Persistence.DbContext
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
         public DbSet<Friendship> Friendships { get; set; }
+        public DbSet<Message> Messages { get; set; }
+        public DbSet<MessageReadStatus> MessageReadStatuses { get; set; }
+        public DbSet<Conversation> Conversations { get; set; }
+        public DbSet<ConversationParticipant> ConversationParticipants { get; set; }
     }
 }
