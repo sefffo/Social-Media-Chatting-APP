@@ -8,7 +8,7 @@ public class Message : BaseEntity<Guid>
     //nav prop 
     public Conversation Conversation { set; get; }
     
-    public string senderId { set; get; }
+    public string SenderId { set; get; }
     //nav prop
     public AppUser Sender { set; get; }
     
