@@ -15,12 +15,12 @@ public class Message : BaseEntity<Guid>
     public MessageContentType Content { set; get; }
     public DateTime SentAt { set; get;}
     //Cloudinary and upload 
-    public string MediaUrl { set; get; }
+    public string? MediaUrl { set; get; }
     public string? MediaPublicId { set; get; }
     public string? FileName { set; get; }
-    public  bool? IsDeleted { set; get; }
+    public  bool IsDeleted { set; get; }
     
     //nav prop for Read status 
-    public MessageReadStatus MessageReadStatus { set; get; }
-    
+    public ICollection<MessageReadStatus> ReadStatuses { set; get; } = [];
+
 }

@@ -13,7 +13,7 @@ public class Conversation : BaseEntity<Guid>
     //nav prop
     public AppUser CreatedByUser { set; get; }
 
-    public string LastMessageId { get; set; }
+    public Guid? LastMessageId { get; set; }
 
     //nav prop 
     public Message? LastMessage { set; get; } //nullable bec if that's a new conversation

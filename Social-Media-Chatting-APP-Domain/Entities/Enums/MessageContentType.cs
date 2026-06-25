@@ -2,8 +2,8 @@
 
 public enum MessageContentType
 {
-    Text = 1,
-    Image = 2,
-    Video = 3,
-    File = 4
+    Text = 0,
+    Image = 1,
+    Video = 2,
+    Document = 3
 }

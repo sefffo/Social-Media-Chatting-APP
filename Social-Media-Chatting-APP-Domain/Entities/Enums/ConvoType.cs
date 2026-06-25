@@ -2,6 +2,6 @@
 
 public enum ConvoType : byte
 {
-    DirectMessage=1,
-    Group=2
+    DirectMessage=0,
+    Group=1
 }
