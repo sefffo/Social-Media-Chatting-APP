@@ -48,6 +48,8 @@ namespace Social_Media_Chatting_APP_Persistence.Repositories
         public void Update(TEntity entity)
             => context.Set<TEntity>().Update(entity);
 
+        public async Task<TEntity?> FindAsync(ISpecification<TEntity> specifications)
+            => await SpecificationEvaluator<TEntity>.GetQuery(context.Set<TEntity>().AsQueryable(), specifications).FirstOrDefaultAsync();
         public async Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate)
             => await context.Set<TEntity>().FirstOrDefaultAsync(predicate);
 
