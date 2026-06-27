@@ -2,5 +2,12 @@
 
 public class ConversationDto
 {
+    public Guid Id { get; set; }
+    public DateTime? LastMessageAt { get; set; }    
+    public string? LastMessagePreview { get; set; }
     
+    public int UnreadCount { get; set; }
+    
+    public ParticipantDto OtherParticipant { get; set; }
+
 }
