@@ -29,6 +29,10 @@ namespace Social_Media_Chatting_APP_Domain.Interfaces
         
         Task<TEntity?> FindAsync(ISpecification<TEntity> specifications);
         
+        Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate);
+        
+        Task<IEnumerable<TEntity>> FindAllAsync(Expression<Func<TEntity, bool>> predicate);
+        
         Task<IEnumerable<TEntity>> FindAllAsync(ISpecification<TEntity> specifications);
         Task<int> CountAsync(ISpecification<TEntity> specifications); //to get the count of the data that we need as it's gonna be used to paginate the data
         Task<TEntity?> GetByIdAsync(ISpecification<TEntity> specifications);

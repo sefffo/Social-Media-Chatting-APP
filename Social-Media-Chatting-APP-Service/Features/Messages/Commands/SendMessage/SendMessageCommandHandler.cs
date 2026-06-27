@@ -17,7 +17,7 @@ public class SendMessageCommandHandler(
 {
     public async Task<Result<MessageDto>> Handle(SendMessageCommand request, CancellationToken cancellationToken)
     {
-        var convoRepo = unitOfWork.GetRepository<Message, Guid>();
+        var convoRepo = unitOfWork.GetRepository<Conversation, Guid>();
         var messageRepo = unitOfWork.GetRepository<Message, Guid>();
         var friendshipRep0 = unitOfWork.GetRepository<Social_Media_Chatting_APP_Domain.Entities.Friendship, Guid>();
         
@@ -25,6 +25,12 @@ public class SendMessageCommandHandler(
         // now we need to fetch all the convos 
         var convSpec = new ConversationSpecification(request.ConversationId);
         var conversation =  await convoRepo.FindAsync(convSpec);
+        if (conversation is null) return Error.NotFound("Conversation.NotFound", "No conversation found with this id");
+
+        if (!conversation.Participants.Any(u=>(Guid.Parse(u.UserId) == request.senderId)))
+        {
+            return Error.Forbidden("Message.NotParticipant", "You are not part of this conversation");
+        }
         
         
         
