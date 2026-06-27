@@ -29,6 +29,9 @@ public class BaseSpecification<TEntity> : ISpecification<TEntity>
     }
 
     
+    
+    public void ApplyTake (int take) => Take = take;
+    
 
     public void AddIncludes(Expression<Func<TEntity, object>> includes)
     {

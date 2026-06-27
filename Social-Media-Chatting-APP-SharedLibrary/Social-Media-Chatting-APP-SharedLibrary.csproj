@@ -7,4 +7,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Social-Media-Chatting-APP-Domain\Social-Media-Chatting-APP-Domain.csproj" />
+  </ItemGroup>
+
 </Project>
