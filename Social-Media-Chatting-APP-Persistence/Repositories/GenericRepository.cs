@@ -2,7 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Social_Media_Chatting_APP_Domain.Entities;
 using Social_Media_Chatting_APP_Domain.Interfaces;
+using Social_Media_Chatting_APP_Domain.Specifications;
 using Social_Media_Chatting_APP_Persistence.DbContext;
+using Social_Media_Chatting_APP_Persistence.Specifications;
 
 namespace Social_Media_Chatting_APP_Persistence.Repositories
 {
@@ -34,12 +36,7 @@ namespace Social_Media_Chatting_APP_Persistence.Repositories
 
         public async Task<TEntity> GetByIdAsync(TKey id)
             => await context.Set<TEntity>().FindAsync(id);
-
-        //public async Task<TEntity?> GetByIdAsync(ISpecifications<TEntity, Tkey> specifications)
-        //{
-        //    return await SpecificationsEvaluator.CreateQuery(context.Set<TEntity>().AsQueryable(), specifications).FirstOrDefaultAsync();
-        //}
-
+        
 
         public async Task AddAsync(TEntity entity)
             => await context.Set<TEntity>().AddAsync(entity);
@@ -58,37 +55,13 @@ namespace Social_Media_Chatting_APP_Persistence.Repositories
         public async Task<IEnumerable<TEntity>> FindAllAsync(Expression<Func<TEntity, bool>> predicate)
             =>  await context.Set<TEntity>().Where(predicate).ToListAsync();
 
+        public async Task<IEnumerable<TEntity>> FindAllAsync(ISpecification<TEntity> specifications)
+           =>  await SpecificationEvaluator<TEntity>.GetQuery(context.Set<TEntity>().AsQueryable(),specifications).ToListAsync();
+        
+        public Task<int> CountAsync(ISpecification<TEntity> specifications)
+            => SpecificationEvaluator<TEntity>.GetQuery(context.Set<TEntity>().AsQueryable(), specifications).CountAsync();
 
-        //public async Task<IEnumerable<TEntity>> GetAllAsync(ISpecifications<TEntity, Tkey> specifications)
-        //{
-
-        //    //bad Practice ==> bec of the fact that we are doing the same thing in the service layer and here in the repository layer which is to check
-        //    //if there are any include expressions or not and then we will do the same thing in both cases which is to return a
-        //    //list of entities but with different ways of doing it , so we create the evaluator class to do this work for us and we will pass the specifications
-        //    //to the evaluator class and it will return the list of entities for us without the need to check anything in the repository layer
-
-        //    //IQueryable<TEntity> query = context.Set<TEntity>();
-        //    //if (specifications.IncludeEcplressions != null && specifications.IncludeEcplressions.Any())
-        //    //{
-        //    //    //IQueryable<TEntity> EntryPoint = context.Set<TEntity>();
-        //    //    foreach (var includeExp in specifications.IncludeEcplressions)
-        //    //    {
-        //    //        query = query.Include(includeExp);
-        //    //    }
-        //    //    return await query.ToListAsync();
-        //    //}
-        //    //return await query.ToListAsync();
-
-
-        //    var Query = SpecificationsEvaluator.CreateQuery(context.Set<TEntity>().AsQueryable(), specifications);
-
-        //    return await Query.ToListAsync();
-
-        //}
-
-        //public async Task<int> CountAsync(ISpecifications<TEntity, Tkey> specifications)
-        //{
-        //    return await SpecificationsEvaluator.CreateQuery(context.Set<TEntity>().AsQueryable(), specifications).CountAsync();
-        //}
+        public async Task<TEntity?> GetByIdAsync(ISpecification<TEntity> specifications)
+            => await SpecificationEvaluator<TEntity>.GetQuery(context.Set<TEntity>().AsQueryable(), specifications).FirstOrDefaultAsync();
     }
 }

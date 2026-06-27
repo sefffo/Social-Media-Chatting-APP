@@ -270,6 +270,65 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.Conversation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConversationType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastMessageAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastMessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("LastMessageId");
+
+                    b.ToTable("Conversations", (string)null);
+                });
+
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.ConversationParticipant", b =>
+                {
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsAdmin")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ConversationId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ConversationParticipants", (string)null);
+                });
+
             modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.Friendship", b =>
                 {
                     b.Property<Guid>("Id")
@@ -297,6 +356,72 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Friendships");
+                });
+
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.Message", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("MediaPublicId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MediaUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("SenderId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("SenderId");
+
+                    b.HasIndex("SentAt");
+
+                    b.ToTable("Messages", (string)null);
+                });
+
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.MessageReadStatus", b =>
+                {
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("MessageId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("MessageReadStatuses", (string)null);
                 });
 
             modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.PasswordResetToken", b =>
@@ -426,6 +551,81 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.Conversation", b =>
+                {
+                    b.HasOne("Social_Media_Chatting_APP_Domain.Entities.AppUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Social_Media_Chatting_APP_Domain.Entities.Message", "LastMessage")
+                        .WithMany()
+                        .HasForeignKey("LastMessageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("LastMessage");
+                });
+
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.ConversationParticipant", b =>
+                {
+                    b.HasOne("Social_Media_Chatting_APP_Domain.Entities.Conversation", "Conversation")
+                        .WithMany("Participants")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Social_Media_Chatting_APP_Domain.Entities.AppUser", "User")
+                        .WithMany("ConversationParticipants")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.Message", b =>
+                {
+                    b.HasOne("Social_Media_Chatting_APP_Domain.Entities.Conversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Social_Media_Chatting_APP_Domain.Entities.AppUser", "Sender")
+                        .WithMany("SentMessages")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.MessageReadStatus", b =>
+                {
+                    b.HasOne("Social_Media_Chatting_APP_Domain.Entities.Message", "Message")
+                        .WithMany("ReadStatuses")
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Social_Media_Chatting_APP_Domain.Entities.AppUser", "User")
+                        .WithMany("MessageReadStatuses")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Message");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.PasswordResetToken", b =>
                 {
                     b.HasOne("Social_Media_Chatting_APP_Domain.Entities.AppUser", "User")
@@ -450,7 +650,25 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
 
             modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.AppUser", b =>
                 {
+                    b.Navigation("ConversationParticipants");
+
+                    b.Navigation("MessageReadStatuses");
+
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("SentMessages");
+                });
+
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.Conversation", b =>
+                {
+                    b.Navigation("Messages");
+
+                    b.Navigation("Participants");
+                });
+
+            modelBuilder.Entity("Social_Media_Chatting_APP_Domain.Entities.Message", b =>
+                {
+                    b.Navigation("ReadStatuses");
                 });
 #pragma warning restore 612, 618
         }
