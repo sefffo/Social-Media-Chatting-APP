@@ -12,8 +12,8 @@ public class Message : BaseEntity<Guid>
     //nav prop
     public AppUser Sender { set; get; }
     
-    public MessageContentType Content { set; get; }
-    public string TextContent { set; get; }
+    public MessageContentType ContentType { set; get; }
+    public string? TextContent { set; get; }
     public Guid? ReplyToMessageId { get; set; }
     // navigation property
     public Message? ReplyToMessage { get; set; }  

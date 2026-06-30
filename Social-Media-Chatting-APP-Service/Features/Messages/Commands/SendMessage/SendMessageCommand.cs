@@ -12,6 +12,7 @@ public record SendMessageCommand(
     string? textContent,
     string? MediaUrl,
     string? FileName,
-    Guid? ReplyToMessageId
+    Guid? ReplyToMessageId,
+    string? mediaPublicId
 )
     : IRequest<Result<MessageDto>>;

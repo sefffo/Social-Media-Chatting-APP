@@ -35,41 +35,70 @@ public class SendMessageCommandHandler(
             return Error.Forbidden("Message.NotParticipant", "You are not part of this conversation");
         }
 
-        var friendshipExists = await FriendshipQueryHelper.GetAsync(friendshipRepo, Guid.Parse(request.senderId),
-            Guid.Parse(conversation.Participants.First(p => p.UserId == request.senderId).UserId));
+        // to check if the JWT token of the Sender is Valid 
+        if (!Guid.TryParse(request.senderId, out var senderGuid))
+            return Error.BadRequest("Message.InvalidSender", "Invalid sender ID");
 
         if (conversation.ConversationType == ConvoType.DirectMessage)
         {
+            var friendshipExists = await FriendshipQueryHelper.GetAsync(friendshipRepo, senderGuid,
+                Guid.Parse(conversation.Participants.First(u => u.UserId != request.senderId).UserId));
             if (friendshipExists == null || friendshipExists.Status != FriendshipStatus.Accepted)
             {
                 return Error.Forbidden("Message.NotFriends", "You are not friends with this user");
             }
         }
 
-        if (request.textContent is null && string.IsNullOrWhiteSpace( request.MediaUrl ))
+        // Text messages must have content
+        if (request.contentType == MessageContentType.Text &&
+            string.IsNullOrWhiteSpace(request.textContent))
         {
-            return Error.BadRequest("Message.MissingMedia", "Message cannot be empty");
+            return Error.BadRequest("Message.EmptyText", "Text message cannot be empty");
+        }
+
+        // Media messages must have URL and public ID
+        if ((request.contentType == MessageContentType.Image ||
+             request.contentType == MessageContentType.Document ||
+             request.contentType == MessageContentType.Video)
+            && (string.IsNullOrWhiteSpace(request.MediaUrl) || request.mediaPublicId is null))
+        {
+            return Error.BadRequest("Message.MissingMedia", "Media URL and public ID are required");
+        }
+
+        // Document messages additionally need a file name
+        if (request.contentType == MessageContentType.Document &&
+            string.IsNullOrWhiteSpace(request.FileName))
+        {
+            return Error.BadRequest("Message.MissingFileName", "File name is required for document messages");
         }
 
         var message = new Message()
         {
             Id = Guid.NewGuid(),
-            Content = request.contentType,
-            ConversationId = request.ConversationId ,
+            ContentType = request.contentType,
+            ConversationId = request.ConversationId,
             SenderId = request.senderId,
             MediaUrl = request.MediaUrl,
             FileName = request.FileName,
             IsDeleted = false,
             SentAt = DateTime.UtcNow,
             TextContent = request.textContent,
-            
-            
-            
-
+            ReplyToMessageId = request.ReplyToMessageId,
+            MediaPublicId = request.mediaPublicId,
         };
-        
+
+        conversation.LastMessageAt = message.SentAt;
+        conversation.LastMessageId = message.Id;
+
+        convoRepo.Update(conversation);
+        await messageRepo.AddAsync(message);
+        await unitOfWork.SaveChangesAsync();
 
 
-        return default;
+        var mappedMessage = mapper.Map<MessageDto>(message);
+
+        await realtimeNotifier.BroadcastNewMessage(request.ConversationId, mappedMessage);
+
+        return Result<MessageDto>.Ok(mappedMessage);
     }
 }
