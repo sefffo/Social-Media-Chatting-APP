@@ -364,7 +364,7 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Content")
+                    b.Property<string>("ContentType")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -399,7 +399,6 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TextContent")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
