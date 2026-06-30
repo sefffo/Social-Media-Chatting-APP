@@ -14,7 +14,7 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.Property(m => m.SentAt).IsRequired();
         builder.Property(m => m.IsDeleted).HasDefaultValue(false);
         builder.Property(m => m.FileName).HasMaxLength(255);
-        builder.Property(m => m.Content).HasConversion<string>();
+        builder.Property(m => m.ContentType).HasConversion<string>();
         builder.Property(m => m.MediaUrl)
             .HasMaxLength(500);
         builder.Property(m => m.MediaPublicId)
