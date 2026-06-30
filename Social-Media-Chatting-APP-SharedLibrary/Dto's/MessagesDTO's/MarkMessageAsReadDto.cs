@@ -2,8 +2,10 @@
 
 public class MarkMessageAsReadDto
 {
-    Guid ConversationId { get; set; }
-    Guid UpToMessageId { get; set; }
-    List<Guid> NewlyMessageIds { get; set; }
-    DateTime? ReadAt { get; set; }   
+    
+    public Guid ReaderId { get; set; }    
+    public Guid ConversationId { get; set; }
+    public Guid UpToMessageId { get; set; }
+    public List<Guid> NewlyMessageIds { get; set; }
+    public DateTime? ReadAt { get; set; }   
 }

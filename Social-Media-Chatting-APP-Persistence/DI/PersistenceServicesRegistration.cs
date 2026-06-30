@@ -24,6 +24,7 @@ namespace Social_Media_Chatting_APP_Persistence.DI
             .AddEntityFrameworkStores<Social_Media_Chatting_APP_DbContext>();
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IMessageReadStatusRepository, MessageReadStatusRepository>();
 
             return services;
         }
