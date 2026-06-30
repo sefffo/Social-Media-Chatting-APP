@@ -35,5 +35,10 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
             .WithMany(u => u.SentMessages)
             .HasForeignKey(m => m.SenderId)
             .OnDelete(DeleteBehavior.Restrict); //dont delete messages if user is deleted 
+        
+        builder.HasOne(m=>m.ReplyToMessage)
+            .WithMany()
+            .HasForeignKey(m=>m.ReplyToMessageId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

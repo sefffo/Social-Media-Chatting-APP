@@ -25,6 +25,13 @@ namespace Social_Media_Chatting_APP_Service.Common
         {
             var assembly = typeof(ServicesRegistration).Assembly;
 
+            #region Real Time Notifier Service
+
+            services.AddScoped<IRealtimeNotifier, RealTimeNotifierService>();
+
+            #endregion
+
+
             #region Upload Service
 
             services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));

@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Server.HttpSys;
 using Social_Media_Chatting_APP_Domain.Entities;
+using Social_Media_Chatting_APP_Domain.Entities.Enums;
 using Social_Media_Chatting_APP_Domain.Interfaces;
 using Social_Media_Chatting_APP_Service.Features.Friendship.Helpers;
 using Social_Media_Chatting_APP_Service.Specification.Conversations;
@@ -37,10 +38,36 @@ public class SendMessageCommandHandler(
         var friendshipExists = await FriendshipQueryHelper.GetAsync(friendshipRepo, Guid.Parse(request.senderId),
             Guid.Parse(conversation.Participants.First(p => p.UserId == request.senderId).UserId));
 
-        if (friendshipExists == null || friendshipExists.Status != FriendshipStatus.Accepted)
+        if (conversation.ConversationType == ConvoType.DirectMessage)
         {
-            return Error.Forbidden("Message.NotFriends", "You are not friends with this user");
+            if (friendshipExists == null || friendshipExists.Status != FriendshipStatus.Accepted)
+            {
+                return Error.Forbidden("Message.NotFriends", "You are not friends with this user");
+            }
         }
+
+        if (request.textContent is null && string.IsNullOrWhiteSpace( request.MediaUrl ))
+        {
+            return Error.BadRequest("Message.MissingMedia", "Message cannot be empty");
+        }
+
+        var message = new Message()
+        {
+            Id = Guid.NewGuid(),
+            Content = request.contentType,
+            ConversationId = request.ConversationId ,
+            SenderId = request.senderId,
+            MediaUrl = request.MediaUrl,
+            FileName = request.FileName,
+            IsDeleted = false,
+            SentAt = DateTime.UtcNow,
+            TextContent = request.textContent,
+            
+            
+            
+
+        };
+        
 
 
         return default;

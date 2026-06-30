@@ -13,6 +13,10 @@ public class Message : BaseEntity<Guid>
     public AppUser Sender { set; get; }
     
     public MessageContentType Content { set; get; }
+    public string TextContent { set; get; }
+    public Guid? ReplyToMessageId { get; set; }
+    // navigation property
+    public Message? ReplyToMessage { get; set; }  
     public DateTime SentAt { set; get;}
     //Cloudinary and upload 
     public string? MediaUrl { set; get; }

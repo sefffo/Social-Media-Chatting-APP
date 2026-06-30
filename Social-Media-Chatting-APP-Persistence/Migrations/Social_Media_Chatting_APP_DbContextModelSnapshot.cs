@@ -388,6 +388,9 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid?>("ReplyToMessageId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SenderId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -395,9 +398,15 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("TextContent")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ConversationId");
+
+                    b.HasIndex("ReplyToMessageId");
 
                     b.HasIndex("SenderId");
 
@@ -596,6 +605,11 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Social_Media_Chatting_APP_Domain.Entities.Message", "ReplyToMessage")
+                        .WithMany()
+                        .HasForeignKey("ReplyToMessageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Social_Media_Chatting_APP_Domain.Entities.AppUser", "Sender")
                         .WithMany("SentMessages")
                         .HasForeignKey("SenderId")
@@ -603,6 +617,8 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Conversation");
+
+                    b.Navigation("ReplyToMessage");
 
                     b.Navigation("Sender");
                 });
