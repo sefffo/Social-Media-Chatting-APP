@@ -1,4 +1,5 @@
-﻿using Social_Media_Chatting_APP_SharedLibrary.Dto_s.MessagesDTO_s;
+﻿using Social_Media_Chatting_APP_SharedLibrary.Dto_s.ConversationDTO_s;
+using Social_Media_Chatting_APP_SharedLibrary.Dto_s.MessagesDTO_s;
 
 namespace Social_Media_Chatting_APP_ServiceAbstraction;
 
@@ -42,4 +43,9 @@ public interface IRealtimeNotifier
     public Task AddToConversationGroup(Guid conversationId, string connectionId);
     
     
+    /// <summary>
+    /// Notifies a specific user that a new conversation was created with them.
+    /// The target user's client will receive the conversation and display it in their list.
+    /// </summary>
+    Task NotifyNewConversationAsync(string targetUserId, ConversationDto conversation);
 }
