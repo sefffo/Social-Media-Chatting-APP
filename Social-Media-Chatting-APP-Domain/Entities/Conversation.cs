@@ -7,6 +7,10 @@ public class Conversation : BaseEntity<Guid>
     public ConvoType ConversationType { get; set; }
     public string? Name { set; get; } //null for DM but needed for group
     public DateTime CreatedAt { get; set; }
+    
+    public string? ImageUrl { set; get; }
+    
+    public string? Description { set; get; }
 
     public string CreatedByUserId { get; set; }
 

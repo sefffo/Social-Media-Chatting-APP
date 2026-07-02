@@ -27,4 +27,11 @@ public class RealTimeNotifierService : IRealtimeNotifier
         // await _hubContext.Clients.User(targetUserId).SendAsync("NewConversation", conversation);
         return Task.CompletedTask;
     }
+
+    public Task NotifyNewGroupConversationAsync(string targetUserIds, ConversationDto conversation)
+    {
+        // TODO: implement when SignalR hub is wired up
+        // await _hubContext.Clients.User(targetUserId).SendAsync("NewConversation", conversation);
+        return Task.CompletedTask;
+    }
 }

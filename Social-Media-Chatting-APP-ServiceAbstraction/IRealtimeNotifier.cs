@@ -48,4 +48,6 @@ public interface IRealtimeNotifier
     /// The target user's client will receive the conversation and display it in their list.
     /// </summary>
     Task NotifyNewConversationAsync(string targetUserId, ConversationDto conversation);
+    
+    Task NotifyNewGroupConversationAsync(string targetUserIds, ConversationDto conversation);
 }
