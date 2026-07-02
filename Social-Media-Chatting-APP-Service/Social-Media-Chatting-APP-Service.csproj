@@ -31,4 +31,8 @@
     <ProjectReference Include="..\Social-Media-Chatting-APP-ServiceAbstraction\Social-Media-Chatting-APP-ServiceAbstraction.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Features\Conversations\Commands\" />
+  </ItemGroup>
+
 </Project>
