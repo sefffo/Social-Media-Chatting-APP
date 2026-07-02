@@ -13,14 +13,17 @@ public class GetConversationsQueryHandler(
     IUnitOfWork unitOfWork,
     IMapper mapper,
     IRealtimeNotifier realtimeNotifier
-    ) : IRequestHandler<GetConversationsQuery , Result<CursorPaginatedResult<ConversationDto>>>
+) : IRequestHandler<GetConversationsQuery, Result<CursorPaginatedResult<ConversationDto>>>
 {
-    public async Task<Result<CursorPaginatedResult<ConversationDto>>> Handle(GetConversationsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<CursorPaginatedResult<ConversationDto>>> Handle(GetConversationsQuery request,
+        CancellationToken cancellationToken)
     {
         var conversationRepo = unitOfWork.GetRepository<Conversation, Guid>();
 
-        var convoSpec = new UserConversationSpecification(request.RequesterId , request.Before , request.PageSize);
-        var conversations = await conversationRepo.FindAllAsync(convoSpec);
+        var convoSpec = new UserConversationSpecification(request.RequesterId, request.Before, request.PageSize);
+        var conversations = (await conversationRepo.FindAllAsync(convoSpec)).ToList();
+
+        var dtos = new List<ConversationDto>();
 
         foreach (var convo in conversations)
         {
@@ -32,10 +35,29 @@ public class GetConversationsQueryHandler(
                 ImageUrl = convo.ImageUrl,
                 Name = convo.Name,
                 LastMessageAt = convo.LastMessageAt,
-                UnreadCount = convo.
+                //m3naha ay mesasge msh mwgoda fe le readstatus table m3naha en el user da mshafhash 
+                UnreadCount = convo.Messages.Count(m =>
+                    !m.IsDeleted && !m.ReadStatuses.Any(rs => rs.UserId == request.RequesterId.ToString())),
+                LastMessagePreview = convo.LastMessage?.TextContent ??
+                                     (convo.LastMessage != null ? "📎 Attachment" : null),
+
+                OtherParticipant = convo.Participants.Where(p => p.UserId != request.RequesterId.ToString())
+                    .Select(p => new ParticipantDto
+                    {
+                        UserId = p.UserId,
+                        DisplayName = p.User.DisplayName ?? p.User.UserName ?? string.Empty,
+                        AvatarUrl = p.User.ProfilePicture,
+                        IsOnline = false // populated later by PresenceTracker
+                    })
+                    .ToList()
             };
+
+            dtos.Add(mappedConvo);
         }
-        
-        
+
+        var result = CursorPaginatedResult<ConversationDto>.Create(dtos, request.PageSize,
+            mappedConvo => mappedConvo.LastMessageAt ?? mappedConvo.CreatedAt);
+
+        return Result<CursorPaginatedResult<ConversationDto>>.Ok(result);
     }
 }
