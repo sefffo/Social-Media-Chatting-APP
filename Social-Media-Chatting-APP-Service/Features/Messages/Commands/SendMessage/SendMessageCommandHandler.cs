@@ -30,10 +30,20 @@ public class SendMessageCommandHandler(
         var conversation = await convoRepo.FindAsync(convSpec);
         if (conversation is null) return Error.NotFound("Conversation.NotFound", "No conversation found with this id");
 
+        if (!conversation.Participants.Any(u => (u.UserId) == request.senderId))
+        {
+            return Error.Forbidden("Message.NotParticipant", "You are not part of this conversation");
+        }
+
+        // to check if the JWT token of the Sender is Valid 
+        if (!Guid.TryParse(request.senderId, out var senderGuid))
+            return Error.BadRequest("Message.InvalidSender", "Invalid sender ID");
 
         if (conversation.ConversationType == ConvoType.DirectMessage)
         {
-            var isSelf = conversation.Participants.Count(u => u.UserId == request.senderId) == 1;
+            
+            var isSelf = conversation.Participants.Count == 1 && conversation.Participants.First().UserId == request.senderId;
+            // we dont need to check if the user is friends if it's a self dm'
             if (isSelf)
             {
                 var selfMessage = new Message()
@@ -58,27 +68,12 @@ public class SendMessageCommandHandler(
                 await messageRepo.AddAsync(selfMessage);
                 await unitOfWork.SaveChangesAsync();
 
-
                 var mappedSelfMessage = mapper.Map<MessageDto>(selfMessage);
-
                 await realtimeNotifier.BroadcastNewMessage(request.ConversationId, mappedSelfMessage);
 
                 return Result<MessageDto>.Ok(mappedSelfMessage);
-                
             }
-        }
-        
-        if (!conversation.Participants.Any(u => (u.UserId) == request.senderId))
-        {
-            return Error.Forbidden("Message.NotParticipant", "You are not part of this conversation");
-        }
-
-        // to check if the JWT token of the Sender is Valid 
-        if (!Guid.TryParse(request.senderId, out var senderGuid))
-            return Error.BadRequest("Message.InvalidSender", "Invalid sender ID");
-
-        if (conversation.ConversationType == ConvoType.DirectMessage)
-        {
+            
             var friendshipExists = await FriendshipQueryHelper.GetAsync(friendshipRepo, senderGuid,
                 Guid.Parse(conversation.Participants.First(u => u.UserId != request.senderId).UserId));
             if (friendshipExists == null || friendshipExists.Status != FriendshipStatus.Accepted)
