@@ -30,6 +30,44 @@ public class SendMessageCommandHandler(
         var conversation = await convoRepo.FindAsync(convSpec);
         if (conversation is null) return Error.NotFound("Conversation.NotFound", "No conversation found with this id");
 
+
+        if (conversation.ConversationType == ConvoType.DirectMessage)
+        {
+            var isSelf = conversation.Participants.Count(u => u.UserId == request.senderId) == 1;
+            if (isSelf)
+            {
+                var selfMessage = new Message()
+                {
+                    Id = Guid.NewGuid(),
+                    ContentType = request.contentType,
+                    ConversationId = request.ConversationId,
+                    SenderId = request.senderId,
+                    MediaUrl = request.MediaUrl,
+                    FileName = request.FileName,
+                    IsDeleted = false,
+                    SentAt = DateTime.UtcNow,
+                    TextContent = request.textContent,
+                    ReplyToMessageId = request.ReplyToMessageId,
+                    MediaPublicId = request.mediaPublicId,
+                };
+
+                conversation.LastMessageAt = selfMessage.SentAt;
+                conversation.LastMessageId = selfMessage.Id;
+
+                convoRepo.Update(conversation);
+                await messageRepo.AddAsync(selfMessage);
+                await unitOfWork.SaveChangesAsync();
+
+
+                var mappedSelfMessage = mapper.Map<MessageDto>(selfMessage);
+
+                await realtimeNotifier.BroadcastNewMessage(request.ConversationId, mappedSelfMessage);
+
+                return Result<MessageDto>.Ok(mappedSelfMessage);
+                
+            }
+        }
+        
         if (!conversation.Participants.Any(u => (u.UserId) == request.senderId))
         {
             return Error.Forbidden("Message.NotParticipant", "You are not part of this conversation");
