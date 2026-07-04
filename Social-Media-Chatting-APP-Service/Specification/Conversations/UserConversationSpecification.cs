@@ -15,7 +15,7 @@ public class UserConversationSpecification : BaseSpecification<Conversation>
         AddIncludes(m => m.LastMessage);
         // Include Messages with their ReadStatuses so we can count unread
         AddIncludes("Messages.ReadStatuses");
-        AddIncludes(m => m.LastMessageAt);
+        //AddIncludes(m => m.LastMessageAt);
         ApplyOrderByDescending(m => m.LastMessageAt);
         ApplyTake(pageSize + 1);
     }
