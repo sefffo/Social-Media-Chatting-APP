@@ -22,7 +22,7 @@ public class ConversationController(
         [FromQuery] DateTime? before,
         [FromQuery] int pageSize = 20)
     {
-        var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new GetConversationsQuery(user, before, pageSize));
         return HandleResult(result);
     }
@@ -31,7 +31,7 @@ public class ConversationController(
     [HttpGet("{conversationId}")]
     public async Task<ActionResult<ConversationDto>> GetConversation(Guid conversationId)
     {
-        var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new GetSingleConversationQuery(user, conversationId));
         return HandleResult(result);
     }
@@ -40,7 +40,7 @@ public class ConversationController(
     [HttpPost("dm")]
     public async Task<ActionResult<ConversationDto>> CreateDmConversation([FromQuery] Guid targetUserId)
     {
-        var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new CreateDmConversationCommand(user, targetUserId));
         return HandleResult(result);
     }
@@ -50,7 +50,7 @@ public class ConversationController(
     public async Task<ActionResult<ConversationDto>> CreateGroupConversation(
         [FromBody] CreateGroupConversationRequestDto dto)
     {
-        var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result =
             await sender.Send(new CreateGroupConversation(user, dto.Name, dto.ParticipantsIds, dto.ImageUrl,
                 dto.Description));
