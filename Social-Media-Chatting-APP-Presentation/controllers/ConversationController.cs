@@ -28,6 +28,15 @@ public class ConversationController(
     }
 
     [Authorize]
+    [HttpGet("{conversationId}")]
+    public async Task<ActionResult<ConversationDto>> GetConversation(Guid conversationId)
+    {
+        var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var result = await sender.Send(new GetSingleConversationQuery(user, conversationId));
+        return HandleResult(result);
+    }
+
+    [Authorize]
     [HttpPost("dm")]
     public async Task<ActionResult<ConversationDto>> CreateDmConversation([FromQuery] Guid targetUserId)
     {
