@@ -17,4 +17,6 @@ public class ConversationDto
     public int UnreadCount { get; set; }
 
     public List<ParticipantDto> OtherParticipant { get; set; }
+    
+    public ParticipantDto participant { get; set; }
 }
