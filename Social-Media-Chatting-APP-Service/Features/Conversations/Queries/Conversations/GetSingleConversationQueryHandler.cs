@@ -1,6 +1,4 @@
-﻿using AutoMapper;
-using MediatR;
-using Microsoft.AspNetCore.Identity;
+﻿using MediatR;
 using Social_Media_Chatting_APP_Domain.Entities;
 using Social_Media_Chatting_APP_Domain.Interfaces;
 using Social_Media_Chatting_APP_Service.Specification.Conversations;
@@ -24,7 +22,7 @@ public class GetSingleConversationQueryHandler(
             return Error.NotFound("Conversation.NotFound", "Conversation Not found");
         }
 
-        if (!conversation .Participants.Any(p => p.UserId == request.RequesterId.ToString()))
+        if (!conversation.Participants.Any(p => p.UserId == request.RequesterId.ToString()))
         {
             return Error.Forbidden("Conversation.NotParticipant", "You are not part of this conversation");
         }
@@ -61,9 +59,10 @@ public class GetSingleConversationQueryHandler(
 
             participant = mappedParticipants.FirstOrDefault(),
 
-            OtherParticipant =mappedParticipants.ToList(),
+            OtherParticipant = mappedParticipants.ToList(),
         };
 
         return Result<ConversationDto>.Ok(mappedConvo);
+        
     }
 }
