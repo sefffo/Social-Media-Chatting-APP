@@ -24,7 +24,7 @@ public class GetSingleConversationQueryHandler(
             return Error.NotFound("Conversation.NotFound", "Conversation Not found");
         }
 
-        if (request.RequesterId != Guid.Parse(conversation.Participants.First().UserId))
+        if (conversation .Participants.Any(p => p.UserId == request.RequesterId.ToString()))
         {
             return Error.Forbidden("Conversation.NotParticipant", "You are not part of this conversation");
         }
