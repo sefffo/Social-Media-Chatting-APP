@@ -10,5 +10,8 @@ public class SingleConversationSpecification : BaseSpecification<Conversation>
     )
     {
         AddIncludes(c => c.Participants);
+        ApplyOrderByDescending(c => c.LastMessageAt);
+        AddIncludes(m => m.LastMessage);
+        AddIncludes("Messages.ReadStatuses");
     }
 }
