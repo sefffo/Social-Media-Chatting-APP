@@ -47,11 +47,13 @@ public class ConversationController(
 
     [Authorize]
     [HttpPost("group")]
-    public async Task<ActionResult<ConversationDto>> CreateGroupConversation([FromQuery] string name,
-        List<Guid> targetUserIds, string? imageUrl, string? description)
+    public async Task<ActionResult<ConversationDto>> CreateGroupConversation(
+        [FromBody] CreateGroupConversationRequestDto dto)
     {
         var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-        var result = await sender.Send(new CreateGroupConversation(user, name, targetUserIds, imageUrl, description));
+        var result =
+            await sender.Send(new CreateGroupConversation(user, dto.Name, dto.ParticipantsIds, dto.ImageUrl,
+                dto.Description));
         return HandleResult(result);
     }
 }
