@@ -10,8 +10,6 @@ using Social_Media_Chatting_APP_SharedLibrary.SharedResponse;
 namespace Social_Media_Chatting_APP_Service.Features.Conversations.Queries.Conversations;
 
 public class GetSingleConversationQueryHandler(
-    UserManager<AppUser> userManager,
-    IMapper mapper,
     IUnitOfWork unitOfWork
 ) : IRequestHandler<GetSingleConversationQuery, Result<ConversationDto>>
 {
@@ -26,11 +24,25 @@ public class GetSingleConversationQueryHandler(
             return Error.NotFound("Conversation.NotFound", "Conversation Not found");
         }
 
+        if (request.RequesterId != Guid.Parse(conversation.Participants.First().UserId))
+        {
+            return Error.Forbidden("Conversation.NotParticipant", "You are not part of this conversation");
+        }
+
         var isSelf = conversation.Participants.Count == 1 &&
                      conversation.Participants.First().UserId == request.RequesterId.ToString();
         var visibleParticipants = isSelf
             ? conversation.Participants
             : conversation.Participants.Where(p => p.UserId != request.RequesterId.ToString());
+
+        var mappedParticipants = visibleParticipants
+            .Select(p => new ParticipantDto
+            {
+                UserId = p.UserId,
+                AvatarUrl = p.User.ProfilePicture,
+                DisplayName = p.User.DisplayName ?? p.User.UserName ?? string.Empty,
+                IsOnline = false
+            }).ToList();
         var mappedConvo = new ConversationDto()
         {
             Id = conversation.Id,
@@ -47,25 +59,11 @@ public class GetSingleConversationQueryHandler(
             LastMessagePreview = conversation.LastMessage?.TextContent ??
                                  (conversation.LastMessage != null ? "📎 Attachment" : null),
 
-            participant = visibleParticipants
-                .Select(p => new ParticipantDto
-                {
-                    UserId = p.UserId,
-                    AvatarUrl = p.User.ProfilePicture,
-                    DisplayName = p.User.DisplayName ?? p.User.UserName ?? string.Empty,
-                    IsOnline = false
-                }).First(),
+            participant = mappedParticipants.FirstOrDefault(),
 
-            OtherParticipant = visibleParticipants
-                .Select(p => new ParticipantDto
-                {
-                    UserId = p.UserId,
-                    AvatarUrl = p.User.ProfilePicture,
-                    DisplayName = p.User.DisplayName ?? p.User.UserName ?? string.Empty,
-                    IsOnline = false
-                }).ToList(),
+            OtherParticipant =mappedParticipants.ToList(),
         };
-        
+
         return Result<ConversationDto>.Ok(mappedConvo);
     }
 }
