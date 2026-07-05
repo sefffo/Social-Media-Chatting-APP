@@ -5,8 +5,8 @@ namespace Social_Media_Chatting_APP_Service.Specification.Conversations;
 
 public class SingleConversationSpecification : BaseSpecification<Conversation>
 {
-    public SingleConversationSpecification(Guid requesterId) : base(c =>
-        c.Participants.Any(p => p.UserId == requesterId.ToString())
+    public SingleConversationSpecification(Guid conversationId) : base(c =>
+        c.Participants.Any(p => p.ConversationId == conversationId)
     )
     {
         AddIncludes(c => c.Participants);
