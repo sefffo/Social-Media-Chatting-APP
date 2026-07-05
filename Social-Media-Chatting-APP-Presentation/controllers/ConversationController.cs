@@ -38,7 +38,7 @@ public class ConversationController(
 
     [Authorize]
     [HttpPost("dm")]
-    public async Task<ActionResult<ConversationDto>> CreateDmConversation([FromQuery] Guid targetUserId)
+    public async Task<ActionResult<ConversationDto>> CreateDmConversation([FromBody] Guid targetUserId)
     {
         var user = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new CreateDmConversationCommand(user, targetUserId));
