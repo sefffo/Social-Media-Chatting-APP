@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Social_Media_Chatting_APP_Domain.Entities;
+using Social_Media_Chatting_APP_Domain.Entities.Enums;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Enums;
 using Social_Media_Chatting_APP_SharedLibrary.SharedResponse;
@@ -29,7 +30,8 @@ public class UploadProfilePictureCommandHandler(
         }
 
         var uploadResult =
-            await uploadService.UploadFileAsync(request.File, "profile-pictures", request.UserId,null,FileResourceType.Image );
+            await uploadService.UploadFileAsync(request.File, UploadPurpose.ProfilePicture, request.UserId, null,
+                FileResourceType.Image);
 
         if (!uploadResult.IsSuccess)
             return Result<string>.Fail(Error.BadRequest("ImageUpload.BadRequest",
