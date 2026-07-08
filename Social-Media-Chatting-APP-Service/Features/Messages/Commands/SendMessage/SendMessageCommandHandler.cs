@@ -46,7 +46,7 @@ public class SendMessageCommandHandler(
                 return Error.Forbidden("Message.NotFriends", "You are not friends with this user");
         }
 
-        
+
         if (request.contentType == MessageContentType.Text &&
             string.IsNullOrWhiteSpace(request.textContent))
             return Error.BadRequest("Message.EmptyText", "Text message cannot be empty");
@@ -60,7 +60,7 @@ public class SendMessageCommandHandler(
         if (request.contentType == MessageContentType.Document &&
             string.IsNullOrWhiteSpace(request.FileName))
             return Error.BadRequest("Message.MissingFileName", "File name is required for document messages");
-        
+
         if (isSelf)
         {
             var selfMessage = new Message()
@@ -84,11 +84,18 @@ public class SendMessageCommandHandler(
             convoRepo.Update(conversation);
             await messageRepo.AddAsync(selfMessage);
             await unitOfWork.SaveChangesAsync();
+            if (request.mediaPublicId is not null)
+            {
+                var mediaAssetRepo = unitOfWork.GetRepository<MediaAsset, Guid>();
+                var mediaAsset =
+                    await mediaAssetRepo.FindAsync(m => m.PublicId == request.mediaPublicId && !m.IsDeleted);
 
-            var mappedSelfMessage = mapper.Map<MessageDto>(selfMessage);
-            await realtimeNotifier.BroadcastNewMessage(request.ConversationId, mappedSelfMessage);
-
-            return Result<MessageDto>.Ok(mappedSelfMessage);
+                if (mediaAsset is not null)
+                {
+                    mediaAsset.MessageId = selfMessage.Id;
+                    await unitOfWork.SaveChangesAsync();
+                }
+            }
         }
 
         var message = new Message()
@@ -112,6 +119,19 @@ public class SendMessageCommandHandler(
         convoRepo.Update(conversation);
         await messageRepo.AddAsync(message);
         await unitOfWork.SaveChangesAsync();
+        
+        if (request.mediaPublicId is not null)
+        {
+            var mediaAssetRepo = unitOfWork.GetRepository<MediaAsset, Guid>();
+            var mediaAsset = await mediaAssetRepo.FindAsync(
+                m => m.PublicId == request.mediaPublicId && !m.IsDeleted);
+
+            if (mediaAsset is not null)
+            {
+                mediaAsset.MessageId = message.Id;
+                await unitOfWork.SaveChangesAsync();
+            }
+        }
 
         var mappedMessage = mapper.Map<MessageDto>(message);
         await realtimeNotifier.BroadcastNewMessage(request.ConversationId, mappedMessage);
