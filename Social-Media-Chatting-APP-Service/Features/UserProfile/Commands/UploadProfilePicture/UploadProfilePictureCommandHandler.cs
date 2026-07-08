@@ -29,7 +29,7 @@ public class UploadProfilePictureCommandHandler(
         }
 
         var uploadResult =
-            await uploadService.UploadFileAsync(request.File, "profile-pictures", FileResourceType.Image);
+            await uploadService.UploadFileAsync(request.File, "profile-pictures", request.UserId,null,FileResourceType.Image );
 
         if (!uploadResult.IsSuccess)
             return Result<string>.Fail(Error.BadRequest("ImageUpload.BadRequest",
