@@ -24,5 +24,6 @@ namespace Social_Media_Chatting_APP_Persistence.DbContext
         public DbSet<Conversation> Conversations { get; set; }
         public DbSet<ConversationParticipant> ConversationParticipants { get; set; }
         public DbSet<MessageReadStatus> MessageReadStatus { get; set; }
+        public DbSet<MediaAsset> MediaAssets { get; set; }
     }
 }
