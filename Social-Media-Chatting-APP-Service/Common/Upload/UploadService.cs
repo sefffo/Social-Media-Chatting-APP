@@ -1,6 +1,8 @@
-﻿    using CloudinaryDotNet;
-    using CloudinaryDotNet.Actions;
-    using Microsoft.AspNetCore.Http;
+﻿using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+using Microsoft.AspNetCore.Http;
+using Social_Media_Chatting_APP_Domain.Entities;
+using Social_Media_Chatting_APP_Domain.Interfaces;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s.CloudinaryDTO_s;
 using Social_Media_Chatting_APP_SharedLibrary.Enums;
@@ -10,7 +12,8 @@ using Error = Social_Media_Chatting_APP_SharedLibrary.SharedResponse.Error;
 namespace Social_Media_Chatting_APP_Service.Common.Upload;
 
 public class UploadService(
-    Cloudinary cloudinary
+    Cloudinary cloudinary,
+    IUnitOfWork unitOfWork
 ) : IUploadService
 {
     //key value pair Data Structure? Dictionary
@@ -33,7 +36,8 @@ public class UploadService(
     private const long MaxRawSize = 10 * 1024 * 1024; // 10MB
 
     public async Task<Result<CloudinaryUploadResultDto>> UploadFileAsync(IFormFile file, string Folder,
-        FileResourceType resourceType = FileResourceType.Auto)
+        Guid uploaderUserId,
+        Guid? conversationId = null, FileResourceType resourceType = FileResourceType.Auto)
     {
         try
         {
@@ -113,8 +117,35 @@ public class UploadService(
             };
             if (result.Error != null)
                 return Error.BadRequest("Upload.Failed", result.Error.Message);
-            
-            
+
+
+            var mediaAssetRepo = unitOfWork.GetRepository<MediaAsset, Guid>();
+
+            var mediaAsset = new MediaAsset
+            {
+                Id = Guid.NewGuid(),
+                UploaderUserId = uploaderUserId,
+                Url = result.SecureUrl.ToString(),
+                ResourceType = resourceType switch
+                {
+                    FileResourceType.Image => Social_Media_Chatting_APP_Domain.Entities.Enums.ResourceType.Image,
+                    FileResourceType.Video => Social_Media_Chatting_APP_Domain.Entities.Enums.ResourceType.Video,
+                    _ => Social_Media_Chatting_APP_Domain.Entities.Enums.ResourceType.Raw
+                },
+                OriginalFileName = file.FileName,
+                PublicId = result.PublicId,
+                FolderName = Folder,
+                Format = result.Format,
+                Size = result.Length,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false,
+                ConversationId = conversationId,
+                MessageId = null // linked later when the message is created
+            };
+
+            await mediaAssetRepo.AddAsync(mediaAsset);
+            await unitOfWork.SaveChangesAsync();
+
             //Return the req DTO 
             var returnResult = new CloudinaryUploadResultDto()
             {
@@ -150,7 +181,17 @@ public class UploadService(
             var result = await cloudinary.DestroyAsync(deleteParams);
 
             if (result.Result == "ok" || result.Result == "not found")
+            {
+                var mediaAssetRepo = unitOfWork.GetRepository<MediaAsset, Guid>();
+                var asset = await mediaAssetRepo.FindAsync(m => m.PublicId == publicId && !m.IsDeleted);
+                if (asset != null)
+                {
+                    asset.IsDeleted = true;
+                    await unitOfWork.SaveChangesAsync();
+                }
+
                 return Result<object>.Ok("File Deleted");
+            }
 
             return Result<object>.Fail(Error.BadRequest("Upload.DeleteFailed", result.Result));
         }

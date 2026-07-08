@@ -7,6 +7,12 @@ namespace Social_Media_Chatting_APP_ServiceAbstraction;
 
 public interface IUploadService
 {
-    public Task<Result<CloudinaryUploadResultDto>> UploadFileAsync(IFormFile file , string Folder  , FileResourceType FileResourceType = FileResourceType.Auto );
+    Task<Result<CloudinaryUploadResultDto>> UploadFileAsync(
+        IFormFile file,
+        string folder,
+        Guid uploaderUserId,
+        Guid? conversationId = null,
+        FileResourceType resourceType = FileResourceType.Auto);
+
     public Task<Result> DeleteFileAsync(string publicId, FileResourceType resourceType = FileResourceType.Auto);
 }
