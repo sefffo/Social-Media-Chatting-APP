@@ -51,6 +51,8 @@ namespace Social_Media_Chatting_APP_Service.Common
             cloudinary.Api.Secure = true; // always use https
 
             services.AddSingleton(cloudinary);
+            
+            services.AddScoped<IUploadService, UploadService>();
 
             #endregion
 
