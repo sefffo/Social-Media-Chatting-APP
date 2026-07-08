@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Social_Media_Chatting_APP_Domain.Entities.Enums;
-using Social_Media_Chatting_APP_Service.Common.Upload;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s.CloudinaryDTO_s;
 using Social_Media_Chatting_APP_SharedLibrary.Enums;
