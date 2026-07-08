@@ -35,13 +35,28 @@ public class ExceptionHandlerMiddleware(
                 detail: "One or more validation errors occurred.",
                 extensions: new Dictionary<string, object?>
                 {
-                    ["errors"]    = errors,
-                    ["traceId"]   = httpContext.TraceIdentifier,
+                    ["errors"] = errors,
+                    ["traceId"] = httpContext.TraceIdentifier,
                     ["timestamp"] = DateTime.UtcNow
                 });
         }
+        catch (OperationCanceledException ex)
+        {
+            logger.LogWarning("Request canceled by client at {Method} {Path}",
+                httpContext.Request.Method,
+                httpContext.Request.Path);
+            return; // client is gone, nothing to write, nothing to fix
+        }
         catch (Exception ex)
         {
+            if (httpContext.Response.HasStarted)
+            {
+                logger.LogError(ex,
+                    "Exception occurred after response already started at {Method} {Path}",
+                    httpContext.Request.Method,
+                    httpContext.Request.Path);
+                return; // can't touch status code or body anymore — just log and exit
+            }
             logger.LogError(ex,
                 "Exception [{ExceptionType}] at {Method} {Path} — {Message}",
                 ex.GetType().Name,
@@ -51,38 +66,38 @@ public class ExceptionHandlerMiddleware(
 
             var statusCode = ex switch
             {
-                NotFoundException           => StatusCodes.Status404NotFound,
-                ConflictException           => StatusCodes.Status409Conflict,
-                ForbiddenException          => StatusCodes.Status403Forbidden,
-                BadRequestException         => StatusCodes.Status400BadRequest,
+                NotFoundException => StatusCodes.Status404NotFound,
+                ConflictException => StatusCodes.Status409Conflict,
+                ForbiddenException => StatusCodes.Status403Forbidden,
+                BadRequestException => StatusCodes.Status400BadRequest,
                 UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
-                InvalidOperationException   => StatusCodes.Status400BadRequest,
+                InvalidOperationException => StatusCodes.Status400BadRequest,
                 ServiceUnavailableException => StatusCodes.Status503ServiceUnavailable,
-                _                           => StatusCodes.Status500InternalServerError
+                _ => StatusCodes.Status500InternalServerError
             };
 
             var detail = ex switch
             {
-                NotFoundException           => ex.Message,
-                ConflictException           => ex.Message,
-                ForbiddenException          => ex.Message,
-                BadRequestException         => ex.Message,
+                NotFoundException => ex.Message,
+                ConflictException => ex.Message,
+                ForbiddenException => ex.Message,
+                BadRequestException => ex.Message,
                 UnauthorizedAccessException => ex.Message,
-                InvalidOperationException   => ex.Message,
+                InvalidOperationException => ex.Message,
                 ServiceUnavailableException => ex.Message,
-                _                           => "An unexpected error occurred. Please try again later."
+                _ => "An unexpected error occurred. Please try again later."
             };
 
             var title = ex switch
             {
-                NotFoundException           => "Resource Not Found",
-                ConflictException           => "Conflict",
-                ForbiddenException          => "Forbidden",
-                BadRequestException         => "Bad Request",
+                NotFoundException => "Resource Not Found",
+                ConflictException => "Conflict",
+                ForbiddenException => "Forbidden",
+                BadRequestException => "Bad Request",
                 UnauthorizedAccessException => "Unauthorized",
-                InvalidOperationException   => "Invalid Operation",
+                InvalidOperationException => "Invalid Operation",
                 ServiceUnavailableException => "Service Unavailable",
-                _                           => "Internal Server Error"
+                _ => "Internal Server Error"
             };
 
             await WriteProblemAsync(httpContext,
@@ -92,9 +107,9 @@ public class ExceptionHandlerMiddleware(
                 extensions: new Dictionary<string, object?>
                 {
                     ["exceptionType"] = ex.GetType().Name,
-                    ["traceId"]       = httpContext.TraceIdentifier,
-                    ["timestamp"]     = DateTime.UtcNow,
-                    ["stackTrace"]    = IsDevEnvironment() ? ex.StackTrace : null
+                    ["traceId"] = httpContext.TraceIdentifier,
+                    ["timestamp"] = DateTime.UtcNow,
+                    ["stackTrace"] = IsDevEnvironment() ? ex.StackTrace : null
                 });
         }
     }
@@ -110,7 +125,7 @@ public class ExceptionHandlerMiddleware(
                 detail: $"The endpoint '{httpContext.Request.Method} {httpContext.Request.Path}' does not exist.",
                 extensions: new Dictionary<string, object?>
                 {
-                    ["traceId"]   = httpContext.TraceIdentifier,
+                    ["traceId"] = httpContext.TraceIdentifier,
                     ["timestamp"] = DateTime.UtcNow
                 });
         }
@@ -125,16 +140,16 @@ public class ExceptionHandlerMiddleware(
     {
         var problem = new ProblemDetails
         {
-            Title    = title,
-            Detail   = detail,
-            Status   = statusCode,
+            Title = title,
+            Detail = detail,
+            Status = statusCode,
             Instance = $"{httpContext.Request.Method} {httpContext.Request.Path}"
         };
 
         foreach (var (key, value) in extensions)
             problem.Extensions[key] = value;
 
-        httpContext.Response.StatusCode  = statusCode;
+        httpContext.Response.StatusCode = statusCode;
         httpContext.Response.ContentType = "application/problem+json";
 
         await httpContext.Response.WriteAsJsonAsync(problem);

@@ -287,6 +287,12 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("LastMessageAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -321,6 +327,9 @@ namespace Social_Media_Chatting_APP_Persistence.Migrations
 
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte>("Role")
+                        .HasColumnType("smallint");
 
                     b.HasKey("ConversationId", "UserId");
 

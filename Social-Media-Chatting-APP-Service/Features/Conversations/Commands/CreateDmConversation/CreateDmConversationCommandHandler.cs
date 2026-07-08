@@ -72,7 +72,6 @@ public class CreateDmConversationCommandHandler(
                 Id = Guid.NewGuid(),
                 ConversationType = ConvoType.DirectMessage,
                 CreatedAt = DateTime.UtcNow,
-                CreatedByUserId = request.RequesterId.ToString(),
                 Participants = new List<ConversationParticipant>
                 {
                     new() { UserId = request.RequesterId.ToString() }
