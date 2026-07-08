@@ -2,12 +2,14 @@
 using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Http;
 using Social_Media_Chatting_APP_Domain.Entities;
+using Social_Media_Chatting_APP_Domain.Entities.Enums;
 using Social_Media_Chatting_APP_Domain.Interfaces;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s.CloudinaryDTO_s;
 using Social_Media_Chatting_APP_SharedLibrary.Enums;
 using Social_Media_Chatting_APP_SharedLibrary.SharedResponse;
 using Error = Social_Media_Chatting_APP_SharedLibrary.SharedResponse.Error;
+using ResourceType = CloudinaryDotNet.Actions.ResourceType;
 
 namespace Social_Media_Chatting_APP_Service.Common.Upload;
 
@@ -18,6 +20,17 @@ public class UploadService(
 {
     //key value pair Data Structure? Dictionary
 
+    private static string Resolvefolder(UploadPurpose purpose, Guid uploaderUserId)
+    {
+        return purpose switch
+        {
+            UploadPurpose.ChatMedia => $"chat-media/{uploaderUserId}",
+            UploadPurpose.ProfilePicture => $"profile-pictures/{uploaderUserId}",
+            UploadPurpose.PostMedia => $"posts/{uploaderUserId}",
+            UploadPurpose.StoryMedia => $"stories/{uploaderUserId}",
+            _ => "misc"
+        };
+    }
 
     private static readonly Dictionary<FileResourceType, List<string>> AllowedExtensions = new()
     {
@@ -35,7 +48,7 @@ public class UploadService(
     private const long MaxVideoSize = 50 * 1024 * 1024; // 50MB
     private const long MaxRawSize = 10 * 1024 * 1024; // 10MB
 
-    public async Task<Result<CloudinaryUploadResultDto>> UploadFileAsync(IFormFile file, string Folder,
+    public async Task<Result<CloudinaryUploadResultDto>> UploadFileAsync(IFormFile file,UploadPurpose purpose,
         Guid uploaderUserId,
         Guid? conversationId = null, FileResourceType resourceType = FileResourceType.Auto)
     {
@@ -76,6 +89,7 @@ public class UploadService(
             if (resourceType == FileResourceType.Auto && file.Length > MaxVideoSize)
                 return Error.BadRequest("Upload.FileTooLarge", "File size exceeds the maximum allowed size");
 
+            var folder = Resolvefolder(purpose, uploaderUserId);
 
             var cloudinaryResourceType = resourceType switch
             {
@@ -96,21 +110,21 @@ public class UploadService(
                 ResourceType.Image => await cloudinary.UploadAsync(new ImageUploadParams
                 {
                     File = fileDescription,
-                    Folder = Folder,
+                    Folder = folder,
                     PublicId = Guid.NewGuid().ToString(),
                     Overwrite = false
                 }),
                 ResourceType.Video => await cloudinary.UploadAsync(new VideoUploadParams
                 {
                     File = fileDescription,
-                    Folder = Folder,
+                    Folder = folder,
                     PublicId = Guid.NewGuid().ToString(),
                     Overwrite = false
                 }),
                 _ => await cloudinary.UploadAsync(new RawUploadParams
                 {
                     File = fileDescription,
-                    Folder = Folder,
+                    Folder = folder,
                     PublicId = Guid.NewGuid().ToString(),
                     Overwrite = false
                 })
@@ -134,7 +148,7 @@ public class UploadService(
                 },
                 OriginalFileName = file.FileName,
                 PublicId = result.PublicId,
-                FolderName = Folder,
+                FolderName = folder,
                 Format = result.Format,
                 Size = result.Length,
                 CreatedAt = DateTime.UtcNow,
