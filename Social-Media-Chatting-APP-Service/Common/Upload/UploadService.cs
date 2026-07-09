@@ -48,7 +48,7 @@ public class UploadService(
     private const long MaxVideoSize = 50 * 1024 * 1024; // 50MB
     private const long MaxRawSize = 10 * 1024 * 1024; // 10MB
 
-    public async Task<Result<CloudinaryUploadResultDto>> UploadFileAsync(IFormFile file,UploadPurpose purpose,
+    public async Task<Result<CloudinaryUploadResultDto>> UploadFileAsync(IFormFile file, UploadPurpose purpose,
         Guid uploaderUserId,
         Guid? conversationId = null, FileResourceType resourceType = FileResourceType.Auto)
     {
@@ -134,7 +134,9 @@ public class UploadService(
 
 
             var mediaAssetRepo = unitOfWork.GetRepository<MediaAsset, Guid>();
-
+            var format = !string.IsNullOrWhiteSpace(result.Format)
+                ? result.Format
+                : Path.GetExtension(file.FileName).TrimStart('.').ToLowerInvariant();
             var mediaAsset = new MediaAsset
             {
                 Id = Guid.NewGuid(),
@@ -149,7 +151,7 @@ public class UploadService(
                 OriginalFileName = file.FileName,
                 PublicId = result.PublicId,
                 FolderName = folder,
-                Format = result.Format,
+                Format = format,
                 Size = result.Length,
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false,
