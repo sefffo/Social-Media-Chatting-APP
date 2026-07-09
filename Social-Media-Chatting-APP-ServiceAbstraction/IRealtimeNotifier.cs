@@ -1,4 +1,5 @@
-﻿using Social_Media_Chatting_APP_SharedLibrary.Dto_s.ConversationDTO_s;
+﻿using Social_Media_Chatting_APP_Domain.Entities;
+using Social_Media_Chatting_APP_SharedLibrary.Dto_s.ConversationDTO_s;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s.MessagesDTO_s;
 
 namespace Social_Media_Chatting_APP_ServiceAbstraction;
@@ -52,4 +53,5 @@ public interface IRealtimeNotifier
     public Task NotifyNewGroupConversationAsync(string targetUserIds, ConversationDto conversation);
     public Task NotifyGroupUpdatedAsync(string participantUserId, ConversationDto mappedGroup);
     Task NotifyRemovedFromGroupAsync(string targetUserId, Guid requestConversationId);
+    Task NotifyRoleChangedAsync(string targetUserId, Guid requestConversationId, GroupRole requestNewRole);
 }

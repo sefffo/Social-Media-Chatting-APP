@@ -1,4 +1,5 @@
-﻿using Social_Media_Chatting_APP_ServiceAbstraction;
+﻿using Social_Media_Chatting_APP_Domain.Entities;
+using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s.ConversationDTO_s;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s.MessagesDTO_s;
 
@@ -36,6 +37,18 @@ public class RealTimeNotifierService : IRealtimeNotifier
     }
 
     public Task NotifyGroupUpdatedAsync(string participantUserId, ConversationDto mappedGroup)
+    {
+        //TODO: implement when SignalR hub is wired up
+        return Task.CompletedTask;
+    }
+
+    public Task NotifyRemovedFromGroupAsync(string targetUserId, Guid requestConversationId)
+    {
+        //TODO: implement when SignalR hub is wired up
+        return Task.CompletedTask;
+    }
+
+    public Task NotifyRoleChangedAsync(string targetUserId, Guid requestConversationId, GroupRole requestNewRole)
     {
         //TODO: implement when SignalR hub is wired up
         return Task.CompletedTask;
