@@ -54,7 +54,7 @@ public class AddGroupParticipantCommandHandler(
         foreach (var newParticipantId in newParticipantIds)
         {
             var participant = GroupPermissionHelper.IsParticipant(conversation, newParticipantId.ToString());
-            if (!participant)
+            if (participant)
             {
                 return Error.BadRequest("Conversation.AlreadyMember",
                     $"User {newParticipantId} is already a member of this group");
