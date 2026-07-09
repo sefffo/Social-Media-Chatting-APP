@@ -32,6 +32,18 @@ public class UploadService(
         };
     }
 
+    private static FileResourceType DetectResourceType(string extension)
+    {
+        foreach (var kvp in AllowedExtensions)
+        {
+            if (kvp.Key == FileResourceType.Auto) continue;
+            if (kvp.Value.Contains(extension))
+                return kvp.Key;
+        }
+
+        return FileResourceType.Raw; // safe fallback for unrecognized types
+    }
+
     private static readonly Dictionary<FileResourceType, List<string>> AllowedExtensions = new()
     {
         { FileResourceType.Image, new List<string> { ".jpg", ".jpeg", ".png", ".webp" } },
@@ -67,27 +79,19 @@ public class UploadService(
 
             //check the file extension 
             var extension = Path.GetExtension(file.FileName).ToLower();
+            if (resourceType == FileResourceType.Auto)
+            {
+                resourceType = DetectResourceType(extension);
+            }
+
             var allowedExtensions = AllowedExtensions[resourceType];
             if (!allowedExtensions.Contains(extension))
                 return Error.BadRequest("Upload.InvalidExtension", $"File extension '{extension}' is not allowed");
             //validate file size 
-            if (resourceType == FileResourceType.Image && file.Length > MaxImageSize)
-            {
-                return Error.BadRequest("Upload.FileFailedToUpload", "File size exceeds the maximum allowed size");
-            }
-
-            if (resourceType == FileResourceType.Video && file.Length > MaxVideoSize)
-            {
-                return Error.BadRequest("Upload.FileFailedToUpload", "File size exceeds the maximum allowed size");
-            }
-
-            if (resourceType == FileResourceType.Raw && file.Length > MaxRawSize)
-            {
-                return Error.BadRequest("Upload.FileFailedToUpload", "File size exceeds the maximum allowed size");
-            }
 
             if (resourceType == FileResourceType.Auto && file.Length > MaxVideoSize)
                 return Error.BadRequest("Upload.FileTooLarge", "File size exceeds the maximum allowed size");
+
 
             var folder = Resolvefolder(purpose, uploaderUserId);
 
@@ -128,13 +132,6 @@ public class UploadService(
                     PublicId = Guid.NewGuid().ToString(),
                     Overwrite = false
                 }),
-                _ => await cloudinary.UploadAsync(new AutoUploadParams
-                {
-                    File = fileDescription,
-                    Folder = folder,
-                    PublicId = Guid.NewGuid().ToString(),
-                    Overwrite = false
-                })
             };
             if (result.Error != null)
                 return Error.BadRequest("Upload.Failed", result.Error.Message);
@@ -197,22 +194,26 @@ public class UploadService(
                 return Result<object>.Fail(Error.NotFound("Upload.NotFound", "File Not Found"));
             }
 
-            var deleteParams = new DeletionParams(publicId)
+            var mediaAssetRepo = unitOfWork.GetRepository<MediaAsset, Guid>();
+            var asset = await mediaAssetRepo.FindAsync(m => m.PublicId == publicId && !m.IsDeleted);
+            if (asset == null)
+                return Result<object>.Fail(Error.NotFound("Upload.NotFound", "File Not Found"));
+            var cloudinaryResourceType = asset.ResourceType switch
             {
-                ResourceType = ResourceType.Auto
+                Social_Media_Chatting_APP_Domain.Entities.Enums.ResourceType.Image => ResourceType.Image,
+                Social_Media_Chatting_APP_Domain.Entities.Enums.ResourceType.Video => ResourceType.Video,
+                _ => ResourceType.Raw
+            };
+            var deleteParams = new DeletionParams(asset.PublicId)
+            {
+                ResourceType = cloudinaryResourceType
             };
             var result = await cloudinary.DestroyAsync(deleteParams);
 
             if (result.Result == "ok" || result.Result == "not found")
             {
-                var mediaAssetRepo = unitOfWork.GetRepository<MediaAsset, Guid>();
-                var asset = await mediaAssetRepo.FindAsync(m => m.PublicId == publicId && !m.IsDeleted);
-                if (asset != null)
-                {
-                    asset.IsDeleted = true;
-                    await unitOfWork.SaveChangesAsync();
-                }
-
+                asset.IsDeleted = true;
+                await unitOfWork.SaveChangesAsync();
                 return Result<object>.Ok("File Deleted");
             }
 
