@@ -88,10 +88,16 @@ public class UploadService(
             if (!allowedExtensions.Contains(extension))
                 return Error.BadRequest("Upload.InvalidExtension", $"File extension '{extension}' is not allowed");
             //validate file size 
+            var maxSize = resourceType switch
+            {
+                FileResourceType.Image => MaxImageSize,
+                FileResourceType.Video => MaxVideoSize,
+                FileResourceType.Raw => MaxRawSize,
+                _ => MaxRawSize
+            };
 
-            if (resourceType == FileResourceType.Auto && file.Length > MaxVideoSize)
+            if (file.Length > maxSize)
                 return Error.BadRequest("Upload.FileTooLarge", "File size exceeds the maximum allowed size");
-
 
             var folder = Resolvefolder(purpose, uploaderUserId);
 
@@ -102,6 +108,7 @@ public class UploadService(
                 FileResourceType.Raw => ResourceType.Raw,
                 _ => ResourceType.Auto
             };
+
 
             //open a file stream for upload 
 
