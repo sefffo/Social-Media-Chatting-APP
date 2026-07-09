@@ -17,6 +17,9 @@ public class MessageMappingProfile : Profile
                 => opt.MapFrom(src => src.ProfilePicture));
 
         CreateMap<Message, MessageDto>()
+            .ForMember(dest => dest.Sender, opt => opt.MapFrom(src => src.Sender));
+        
+        CreateMap<Message, MessageDto>()
             .ForMember(dest => dest.ReplyTo,
                 opt => opt.MapFrom(src => src.ReplyToMessageId))
             .ForMember(dest => dest.IsReply,
