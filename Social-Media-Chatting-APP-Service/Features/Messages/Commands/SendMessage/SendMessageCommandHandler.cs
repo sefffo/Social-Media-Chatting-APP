@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.HttpSys;
 using Social_Media_Chatting_APP_Domain.Entities;
 using Social_Media_Chatting_APP_Domain.Entities.Enums;
@@ -15,7 +16,8 @@ namespace Social_Media_Chatting_APP_Service.Features.Messages.Commands;
 public class SendMessageCommandHandler(
     IUnitOfWork unitOfWork,
     IMapper mapper,
-    IRealtimeNotifier realtimeNotifier // used for teh events 
+    IRealtimeNotifier realtimeNotifier, // used for teh events 
+    UserManager<AppUser> userManager
 ) : IRequestHandler<SendMessageCommand, Result<MessageDto>>
 {
     public async Task<Result<MessageDto>> Handle(SendMessageCommand request, CancellationToken cancellationToken)
@@ -23,6 +25,9 @@ public class SendMessageCommandHandler(
         var convoRepo = unitOfWork.GetRepository<Conversation, Guid>();
         var messageRepo = unitOfWork.GetRepository<Message, Guid>();
         var friendshipRepo = unitOfWork.GetRepository<Social_Media_Chatting_APP_Domain.Entities.Friendship, Guid>();
+
+
+        var senderUser = await userManager.FindByIdAsync(request.senderId);
 
         var convSpec = new ConversationSpecification(request.ConversationId);
         var conversation = await convoRepo.FindAsync(convSpec);
@@ -68,7 +73,7 @@ public class SendMessageCommandHandler(
                 Id = Guid.NewGuid(),
                 ContentType = request.contentType,
                 ConversationId = request.ConversationId,
-                SenderId = request.senderId,
+                SenderId = senderUser.Id,
                 MediaUrl = request.MediaUrl,
                 FileName = request.FileName,
                 IsDeleted = false,
@@ -96,6 +101,7 @@ public class SendMessageCommandHandler(
                     await unitOfWork.SaveChangesAsync();
                 }
             }
+
             var mappedSelfMessage = mapper.Map<MessageDto>(selfMessage);
             await realtimeNotifier.BroadcastNewMessage(request.ConversationId, mappedSelfMessage);
 
@@ -107,7 +113,7 @@ public class SendMessageCommandHandler(
             Id = Guid.NewGuid(),
             ContentType = request.contentType,
             ConversationId = request.ConversationId,
-            SenderId = request.senderId,
+            SenderId = senderUser.Id,
             MediaUrl = request.MediaUrl,
             FileName = request.FileName,
             IsDeleted = false,
@@ -123,12 +129,11 @@ public class SendMessageCommandHandler(
         convoRepo.Update(conversation);
         await messageRepo.AddAsync(message);
         await unitOfWork.SaveChangesAsync();
-        
+
         if (request.mediaPublicId is not null)
         {
             var mediaAssetRepo = unitOfWork.GetRepository<MediaAsset, Guid>();
-            var mediaAsset = await mediaAssetRepo.FindAsync(
-                m => m.PublicId == request.mediaPublicId && !m.IsDeleted);
+            var mediaAsset = await mediaAssetRepo.FindAsync(m => m.PublicId == request.mediaPublicId && !m.IsDeleted);
 
             if (mediaAsset is not null)
             {

@@ -16,8 +16,7 @@ public class MessageMappingProfile : Profile
             .ForMember(dest => dest.AvatarUrl, opt
                 => opt.MapFrom(src => src.ProfilePicture));
 
-        CreateMap<Message, MessageDto>()
-            .ForMember(dest => dest.Sender, opt => opt.MapFrom(src => src.Sender));
+     
         
         CreateMap<Message, MessageDto>()
             .ForMember(dest => dest.ReplyTo,
@@ -27,6 +26,7 @@ public class MessageMappingProfile : Profile
             .ForMember(dest => dest.ReadByCount,
                 opt => opt.MapFrom(src => src.ReadStatuses.Count))
             .ForMember(dest => dest.IsRead,
-                opt => opt.Ignore()); // set in handler based on current user
+                opt => opt.Ignore()) // set in handler based on current user
+            .ForMember(dest => dest.Sender, opt => opt.MapFrom(src => src.Sender));
     }
 }
