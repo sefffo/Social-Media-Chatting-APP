@@ -2,12 +2,14 @@
 using Social_Media_Chatting_APP_Domain.Entities;
 using Social_Media_Chatting_APP_Domain.Entities.Enums;
 using Social_Media_Chatting_APP_Domain.Interfaces;
+using Social_Media_Chatting_APP_Service.Features.Conversations.Group.ChangeRole;
 using Social_Media_Chatting_APP_Service.Features.Conversations.Group.Helpers;
 using Social_Media_Chatting_APP_Service.Specification.Conversations;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.SharedResponse;
 
-namespace Social_Media_Chatting_APP_Service.Features.Conversations.Group.ChangeRole;
+namespace Social_Media_Chatting_APP_Service.Features.Conversations.Commands.Group;
+
 
 public class ChangeGroupRoleHandler(
     IUnitOfWork unitOfWork,

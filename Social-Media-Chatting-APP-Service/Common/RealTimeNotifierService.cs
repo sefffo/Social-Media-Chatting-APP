@@ -7,6 +7,8 @@ namespace Social_Media_Chatting_APP_Service.Common;
 
 public class RealTimeNotifierService : IRealtimeNotifier
 {
+    private IRealtimeNotifier _realtimeNotifierImplementation;
+
     public Task BroadcastNewMessage(Guid conversationId, MessageDto message)
     {
         return Task.CompletedTask;
@@ -49,6 +51,12 @@ public class RealTimeNotifierService : IRealtimeNotifier
     }
 
     public Task NotifyRoleChangedAsync(string targetUserId, Guid requestConversationId, GroupRole requestNewRole)
+    {
+        //TODO: implement when SignalR hub is wired up
+        return Task.CompletedTask;
+    }
+
+    public Task NotifyGroupDeletedAsync(string userId, Guid requestConversationId)
     {
         //TODO: implement when SignalR hub is wired up
         return Task.CompletedTask;
