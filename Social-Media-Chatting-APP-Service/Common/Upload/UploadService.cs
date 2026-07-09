@@ -176,7 +176,9 @@ public class UploadService(
             //Return the req DTO 
             var returnResult = new CloudinaryUploadResultDto()
             {
+                MediaAssetId = mediaAsset.Id,
                 PublicId = result.PublicId,
+                FileName = file.FileName,
                 Format = result.Format,
                 ResourceType = result.ResourceType,
                 Size = result.Length,
