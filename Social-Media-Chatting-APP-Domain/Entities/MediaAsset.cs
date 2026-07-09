@@ -4,7 +4,7 @@ namespace Social_Media_Chatting_APP_Domain.Entities;
 
 public class MediaAsset : BaseEntity<Guid>
 {
-    public Guid UploaderUserId { get; set; }
+    public Guid UploaderId { get; set; }
 
     //nav prop 
     public AppUser Uploader { set; get; }

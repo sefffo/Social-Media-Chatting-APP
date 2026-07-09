@@ -138,7 +138,7 @@ public class UploadService(
             var mediaAsset = new MediaAsset
             {
                 Id = Guid.NewGuid(),
-                UploaderUserId = uploaderUserId,
+                UploaderId = uploaderUserId,
                 Url = result.SecureUrl.ToString(),
                 ResourceType = resourceType switch
                 {
