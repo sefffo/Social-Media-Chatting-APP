@@ -53,6 +53,10 @@ namespace Social_Media_Chatting_APP_Service.Common
             services.AddSingleton(cloudinary);
             
             services.AddScoped<IUploadService, UploadService>();
+            
+            //background queue for uploading files
+            services.AddSingleton<BackgroundUploadQueue>();
+            services.AddHostedService<UploadBackgroundService>();
 
             #endregion
 
