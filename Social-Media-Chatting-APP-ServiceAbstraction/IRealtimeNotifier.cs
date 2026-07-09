@@ -51,4 +51,5 @@ public interface IRealtimeNotifier
     
     public Task NotifyNewGroupConversationAsync(string targetUserIds, ConversationDto conversation);
     public Task NotifyGroupUpdatedAsync(string participantUserId, ConversationDto mappedGroup);
+    Task NotifyRemovedFromGroupAsync(string targetUserId, Guid requestConversationId);
 }
