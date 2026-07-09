@@ -47,7 +47,8 @@ public interface IRealtimeNotifier
     /// Notifies a specific user that a new conversation was created with them.
     /// The target user's client will receive the conversation and display it in their list.
     /// </summary>
-    Task NotifyNewConversationAsync(string targetUserId, ConversationDto conversation);
+    public Task NotifyNewConversationAsync(string targetUserId, ConversationDto conversation);
     
-    Task NotifyNewGroupConversationAsync(string targetUserIds, ConversationDto conversation);
+    public Task NotifyNewGroupConversationAsync(string targetUserIds, ConversationDto conversation);
+    public Task NotifyGroupUpdatedAsync(string participantUserId, ConversationDto mappedGroup);
 }
