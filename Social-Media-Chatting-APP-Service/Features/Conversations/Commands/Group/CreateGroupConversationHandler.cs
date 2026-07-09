@@ -23,8 +23,19 @@ public class CreateGroupConversationHandler(
     {
         var conversationRepo = unitOfWork.GetRepository<Conversation, Guid>();
         var friendshipRepo = unitOfWork.GetRepository<Social_Media_Chatting_APP_Domain.Entities.Friendship, Guid>();
+        
+        var participantIds = request.ParticipantsIds
+            .Where(id => id != request.RequesterId)
+            .Distinct()
+            .ToList();
+        
+        if (participantIds.Count == 0)
+        {
+            return Error.BadRequest("Conversation.NoParticipants",
+                "A group requires at least one other participant");
+        }
         var checkedUser = new List<AppUser>();
-        foreach (var participantId in request.ParticipantsIds)
+        foreach (var participantId in participantIds) 
         {
             var user = await userManager.FindByIdAsync(participantId.ToString());
             if (user is null)
@@ -54,7 +65,7 @@ public class CreateGroupConversationHandler(
                 Role = GroupRole.GroupAdmin
             }
         };
-        foreach (var groupMember in checkedUser)
+        foreach (var groupMember in checkedUser) 
         {
             conversationParticipants.Add(new ConversationParticipant()
             {
