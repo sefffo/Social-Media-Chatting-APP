@@ -121,7 +121,14 @@ public class UploadService(
                     PublicId = Guid.NewGuid().ToString(),
                     Overwrite = false
                 }),
-                _ => await cloudinary.UploadAsync(new RawUploadParams
+                ResourceType.Raw => await cloudinary.UploadAsync(new RawUploadParams
+                {
+                    File = fileDescription,
+                    Folder = folder,
+                    PublicId = Guid.NewGuid().ToString(),
+                    Overwrite = false
+                }),
+                _ => await cloudinary.UploadAsync(new AutoUploadParams
                 {
                     File = fileDescription,
                     Folder = folder,
