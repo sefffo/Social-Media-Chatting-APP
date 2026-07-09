@@ -96,6 +96,10 @@ public class SendMessageCommandHandler(
                     await unitOfWork.SaveChangesAsync();
                 }
             }
+            var mappedSelfMessage = mapper.Map<MessageDto>(selfMessage);
+            await realtimeNotifier.BroadcastNewMessage(request.ConversationId, mappedSelfMessage);
+
+            return Result<MessageDto>.Ok(mappedSelfMessage);
         }
 
         var message = new Message()

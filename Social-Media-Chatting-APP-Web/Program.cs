@@ -17,23 +17,28 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 
 
-#region Database Connection 
+#region Database Connection
+
 builder.Services.AddDbContext<Social_Media_Chatting_APP_DbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 #endregion
 
 #region Data Intializer
 
-
 #endregion
 
 #region Application Services
+
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
+
 #endregion
 
 #region Persistence
+
 builder.Services.AddPersistenceServicesRegistration();
+
 #endregion
 
 
@@ -68,8 +73,17 @@ builder.Services.AddSignalR()
 
 
 #region Authentication
+
 builder.Services.AddJwtAuthentication(builder.Configuration);
+
 #endregion
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 var app = builder.Build();
 
@@ -86,7 +100,7 @@ if (app.Environment.IsDevelopment())
 //app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter(); 
+app.UseRateLimiter();
 app.MapControllers();
 
 app.Run();
