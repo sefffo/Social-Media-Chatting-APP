@@ -35,7 +35,7 @@ public class GroupConversationController(
     {
         var requesterId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new RemoveGroupParticipantCommand(
-            requesterId, conversationId, participantId));
+            conversationId, requesterId, participantId));
         return HandleResult(result);
     }
 
