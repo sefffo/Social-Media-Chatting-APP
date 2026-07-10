@@ -47,7 +47,7 @@ public class GroupConversationController(
     {
         var requesterId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new UpdateGroupInfoCommand(
-            requesterId, conversationId, dto.Name, dto.Description, dto.ImageUrl));
+            conversationId, requesterId, dto.Name, dto.Description, dto.ImageUrl));
         return HandleResult(result);
     }
 
