@@ -41,7 +41,7 @@ public class UpdateGroupInfoCommandHandler(
         var adminCheck =
             conversation.Participants.Any(p => p.UserId == request.RequesterId.ToString() && p.Role == GroupRole.GroupAdmin);
 
-        if (!adminCheck)
+        if (adminCheck)
         {
             return Error.Forbidden("Conversation.NotAdmin", "Only group admins can update group info");
         }
