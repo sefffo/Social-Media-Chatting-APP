@@ -23,7 +23,7 @@ public class GroupConversationController(
     {
         var requesterId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new AddGroupParticipantCommand(
-            requesterId, conversationId, dto.NewParticipantIds));
+            conversationId, requesterId, dto.NewParticipantIds));
         return HandleResult(result);
     }
 
