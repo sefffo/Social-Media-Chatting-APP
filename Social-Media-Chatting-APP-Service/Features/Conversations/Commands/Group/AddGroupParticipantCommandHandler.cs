@@ -38,7 +38,7 @@ public class AddGroupParticipantCommandHandler(
 
         var adminCheck = GroupPermissionHelper.IsGroupAdmin(conversation, request.RequesterId.ToString());
 
-        if (!adminCheck)
+        if (adminCheck)
         {
             return Error.Forbidden("Conversation.NotAdmin", "Only group admins can add members to the group");
         }
