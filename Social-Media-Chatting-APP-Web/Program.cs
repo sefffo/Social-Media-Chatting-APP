@@ -58,8 +58,8 @@ options.ConnectTimeout = 10000;
 var multiplexer = ConnectionMultiplexer.Connect(options);
 builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
 
-builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect(redisConnectionString));
+//builder.Services.AddSingleton<IConnectionMultiplexer>(
+//  ConnectionMultiplexer.Connect(redisConnectionString));
 
 // SignalR Redis backplane — uses same Redis instance for multi-server broadcasting
 builder.Services.AddSignalR()
