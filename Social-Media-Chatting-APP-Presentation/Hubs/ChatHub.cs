@@ -23,6 +23,7 @@ public class ChatHub(
         {
             //abort the connection 
             Context.Abort();
+            return;
         }
 
         //get his conversation ids and add to the group 
@@ -32,7 +33,7 @@ public class ChatHub(
 
         foreach (var id in conversationIdsList)
         {
-            await realtimeNotifier.AddToConversationGroup(conversationIdsList, Context.ConnectionId);
+            await realtimeNotifier.AddToConversationGroup(id, Context.ConnectionId);
         }
 
 

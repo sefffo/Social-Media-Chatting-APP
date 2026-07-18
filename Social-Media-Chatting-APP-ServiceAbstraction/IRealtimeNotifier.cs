@@ -41,7 +41,7 @@ public interface IRealtimeNotifier
     ///  <param name="conversationId"></param>
     ///  <param name="connectionId"></param>
     ///  <returns></returns>
-    public Task AddToConversationGroup(List<Guid> conversationId, string connectionId);
+    public Task AddToConversationGroup(Guid conversationId, string connectionId);
     
     
     /// <summary>

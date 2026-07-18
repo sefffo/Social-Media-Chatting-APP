@@ -19,7 +19,7 @@ public class RealTimeNotifierService : IRealtimeNotifier
         return Task.CompletedTask;
     }
 
-    public Task AddToConversationGroup(List<Guid> conversationId, string connectionId)
+    public Task AddToConversationGroup(Guid conversationId, string connectionId)
     {
         return Task.CompletedTask;
     }
