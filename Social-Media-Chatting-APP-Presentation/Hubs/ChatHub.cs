@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Social_Media_Chatting_APP_Domain.Entities;
 using Social_Media_Chatting_APP_Domain.Interfaces;
+using Social_Media_Chatting_APP_Service.Specification.Conversations;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 
 namespace Social_Media_Chatting_APP_Presentation.Hubs;
@@ -28,7 +29,7 @@ public class ChatHub(
 
         //get his conversation ids and add to the group 
         var conversationRepo = unitOfWork.GetRepository<Conversation, Guid>();
-        var conversations = await conversationRepo.FindAllAsync(c => c.Participants.Any(p => p.UserId == user));
+        var conversations = await conversationRepo.FindAllAsync(new UserConversationHubSpecification(Guid.Parse(user)));
         var conversationIdsList = conversations.Select(c => c.Id).ToList();
 
         foreach (var id in conversationIdsList)
