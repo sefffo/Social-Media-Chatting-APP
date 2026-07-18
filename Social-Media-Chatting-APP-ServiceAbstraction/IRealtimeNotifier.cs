@@ -5,7 +5,7 @@ using Social_Media_Chatting_APP_SharedLibrary.Dto_s.MessagesDTO_s;
 namespace Social_Media_Chatting_APP_ServiceAbstraction;
 
 /// <summary>
-///"Somewhere in this system, something exists that can broadcast real-time events.
+/// "Somewhere in this system, something exists that can broadcast real-time events.
 /// I don't know if it's SignalR, WebSockets, or Firebase — and I don't care.
 /// I just call these methods and trust it works."
 /// </summary>
@@ -27,6 +27,12 @@ public interface IRealtimeNotifier
     /// Called from ChatHub.OnConnectedAsync and ChatHub.JoinConversation — not from handlers.
     /// </summary>
     public Task AddToConversationGroup(Guid conversationId, string connectionId);
+
+    /// <summary>
+    /// Removes a specific SignalR connection from a conversation group.
+    /// Called from ChatHub.LeaveConversation when a user is removed or leaves a group.
+    /// </summary>
+    public Task RemoveFromConversationGroup(Guid conversationId, string connectionId);
 
     /// <summary>
     /// Notifies a specific user that a new DM conversation was created with them.

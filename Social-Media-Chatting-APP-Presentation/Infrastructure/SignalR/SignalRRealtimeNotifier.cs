@@ -21,6 +21,14 @@ public class SignalRRealtimeNotifier(
     public async Task AddToConversationGroup(Guid conversationId, string connectionId)
         => await chatHubContext.Groups.AddToGroupAsync(connectionId, conversationId.ToString());
 
+    /// <summary>
+    /// Removes a connection from the SignalR group so the user stops receiving
+    /// BroadcastNewMessage events for this conversation.
+    /// Called when a user is removed from a group or leaves voluntarily.
+    /// </summary>
+    public async Task RemoveFromConversationGroup(Guid conversationId, string connectionId)
+        => await chatHubContext.Groups.RemoveFromGroupAsync(connectionId, conversationId.ToString());
+
     public async Task NotifyNewConversationAsync(string targetUserId, ConversationDto conversation)
         => await notificationHubContext.Clients.User(targetUserId).SendAsync("NewConversation", conversation);
 
