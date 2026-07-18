@@ -16,7 +16,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers()
-    .AddApplicationPart(typeof(Social_Media_Chatting_APP_Presentation.Controllers.AuthController).Assembly);
+    .AddApplicationPart(typeof(Social_Media_Chatting_APP_Presentation.Controllers.AuthController).Assembly)
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 builder.Services.AddOpenApi();
 
@@ -86,13 +91,6 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 
 #endregion
 
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(
-            new System.Text.Json.Serialization.JsonStringEnumConverter());
-    });
-
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlerMiddleware>();
@@ -110,5 +108,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 app.MapControllers();
+
+app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
