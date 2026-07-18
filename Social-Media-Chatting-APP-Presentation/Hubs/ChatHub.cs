@@ -47,21 +47,20 @@ public class ChatHub(
         await base.OnDisconnectedAsync(exception);
     }
 
-    async Task<bool> CheckIfUserIsParticipantOfConversation(Guid User, Guid conversationId)
+    async Task<bool> CheckIfUserIsParticipantOfConversation( Guid conversationId)
     {
         var user = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var conversationRepo = unitOfWork.GetRepository<Conversation, Guid>();
-        var convo = await conversationRepo.FindAsync(c => c.Id == conversationId &&
-                                                          c.Participants.Any(p => p.UserId == user));
-        var convoId = convo?.Id;
-
+        var convo = await conversationRepo.FindAsync(
+            new ConversationMembershipSpecification(conversationId, user));
         return convo is not null;
+        
     }
 
     public async Task JoinConversation(Guid conversationId)
     {
         var user = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var check = await CheckIfUserIsParticipantOfConversation(Guid.Parse(user), conversationId);
+        var check = await CheckIfUserIsParticipantOfConversation(conversationId);
         //check if user is participant of the convo 
         if (check)
         {
@@ -69,7 +68,7 @@ public class ChatHub(
         }
         else
         {
-            throw new Exception("User is not a participant of the conversation");
+            throw new HubException("User is not a participant of the conversation");
         }
     }
 
@@ -79,11 +78,11 @@ public class ChatHub(
 
         //check if he is participant 
 
-        var isParticipant = await CheckIfUserIsParticipantOfConversation(Guid.Parse(user), conversationId);
+        var isParticipant = await CheckIfUserIsParticipantOfConversation(conversationId);
 
         if (isParticipant)
         {
-            await Clients.OthersInGroup(conversationId.ToString()).SendAsync("ReceiveTypingIndicator", user, isTyping);
+            await Clients.OthersInGroup(conversationId.ToString()).SendAsync("ReceiveTypingIndicator", user, conversationId, isTyping);
         }
 
 
