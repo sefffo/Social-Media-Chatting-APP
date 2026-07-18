@@ -50,20 +50,19 @@ public class ChatHub(
     {
         var user = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var conversationRepo = unitOfWork.GetRepository<Conversation, Guid>();
-        var conversations = await conversationRepo.FindAllAsync(c => c.Participants.Any(p => p.UserId == user));
-        var conversationIdsList = conversations.Select(c => c.Id).ToList();
+        var convo = await conversationRepo.FindAsync(c => c.Id == conversationId &&
+                                                          c.Participants.Any(p => p.UserId == user));
+        var convoId = convo?.Id;
 
-        return conversationIdsList.Contains(conversationId);
+        return convo is not null;
     }
 
     public async Task JoinConversation(Guid conversationId)
     {
         var user = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var conversationRepo = unitOfWork.GetRepository<Conversation, Guid>();
-        var conversations = await conversationRepo.FindAllAsync(c => c.Participants.Any(p => p.UserId == user));
-        var conversationIdsList = conversations.Select(c => c.Id).ToList();
+        var check = await CheckIfUserIsParticipantOfConversation(Guid.Parse(user), conversationId);
         //check if user is participant of the convo 
-        if (conversationIdsList.Contains(conversationId))
+        if (check)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, conversationId.ToString());
         }
