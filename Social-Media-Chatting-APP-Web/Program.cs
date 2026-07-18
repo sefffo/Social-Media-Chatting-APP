@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Social_Media_Chatting_APP_Persistence.DbContext;
 using Social_Media_Chatting_APP_Persistence.DI;
+using Social_Media_Chatting_APP_Presentation.Infrastructure.SignalR;
 using Social_Media_Chatting_APP_Service.Common;
 using Social_Media_Chatting_APP_Web.CustomMiddlewares;
 using Social_Media_Chatting_APP_Web.Extensions;
 using StackExchange.Redis;
+using IUserIdProvider = Microsoft.AspNetCore.SignalR.IUserIdProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +70,9 @@ builder.Services.AddSignalR()
         opts.Configuration.Ssl = true;
         opts.Configuration.AbortOnConnectFail = false;
     });
+
+
+builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();
 
 #endregion
 
