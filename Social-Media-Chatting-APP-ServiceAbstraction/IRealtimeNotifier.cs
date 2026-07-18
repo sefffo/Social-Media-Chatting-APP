@@ -30,18 +30,18 @@ public interface IRealtimeNotifier
     /// <param name="messageId"></param>
     /// <returns></returns>
     public Task BroadcastReadReceipt(Guid conversationId, Guid readerId, List<Guid> messageId);
-    
-    /// <summary>
-    ///This one is different — it's not a broadcast. It's connection management. When a user connects to the hub,
-    /// their connection needs to be added to a SignalR group for each conversation they belong to so future broadcasts reach them.
-    ///This gets called from the Hub during OnConnectedAsync, not from a handler.
-    /// But it still belongs on this interface because the Hub will depend on the abstraction, not on the concrete implementation directly.
-    ///It needs: connectionId (the unique SignalR connection identifier) and conversationId (the group name to join).
-    /// </summary>
-    /// <param name="conversationId"></param>
-    /// <param name="connectionId"></param>
-    /// <returns></returns>
-    public Task AddToConversationGroup(Guid conversationId, string connectionId);
+
+    ///  <summary>
+    /// This one is different — it's not a broadcast. It's connection management. When a user connects to the hub,
+    ///  their connection needs to be added to a SignalR group for each conversation they belong to so future broadcasts reach them.
+    /// This gets called from the Hub during OnConnectedAsync, not from a handler.
+    ///  But it still belongs on this interface because the Hub will depend on the abstraction, not on the concrete implementation directly.
+    /// It needs: connectionId (the unique SignalR connection identifier) and conversationId (the group name to join).
+    ///  </summary>
+    ///  <param name="conversationId"></param>
+    ///  <param name="connectionId"></param>
+    ///  <returns></returns>
+    public Task AddToConversationGroup(List<Guid> conversationId, string connectionId);
     
     
     /// <summary>
