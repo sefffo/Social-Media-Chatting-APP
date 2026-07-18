@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Social_Media_Chatting_APP_Domain.Entities;
+using Social_Media_Chatting_APP_Presentation.Hubs;
 using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s.ConversationDTO_s;
 using Social_Media_Chatting_APP_SharedLibrary.Dto_s.MessagesDTO_s;
 
-namespace Social_Media_Chatting_APP_Presentation.Hubs;
+namespace Social_Media_Chatting_APP_Presentation.Infrastructure.SignalR;
 
 public class SignalRRealtimeNotifier(
     IHubContext<ChatHub> chatHubContext,
