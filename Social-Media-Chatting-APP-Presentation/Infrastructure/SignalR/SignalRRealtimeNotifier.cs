@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using Social_Media_Chatting_APP_Domain.Entities;
 using Social_Media_Chatting_APP_Presentation.Hubs;
 using Social_Media_Chatting_APP_ServiceAbstraction;
@@ -21,12 +21,11 @@ public class SignalRRealtimeNotifier(
     public async Task AddToConversationGroup(Guid conversationId, string connectionId)
         => await chatHubContext.Groups.AddToGroupAsync(connectionId, conversationId.ToString());
 
-
     public async Task NotifyNewConversationAsync(string targetUserId, ConversationDto conversation)
         => await notificationHubContext.Clients.User(targetUserId).SendAsync("NewConversation", conversation);
 
-    public async Task NotifyNewGroupConversationAsync(string targetUserIds, ConversationDto conversation)
-        => await notificationHubContext.Clients.Users(targetUserIds).SendAsync("NewGroupConversation", conversation);
+    public async Task NotifyNewGroupConversationAsync(string targetUserId, ConversationDto conversation)
+        => await notificationHubContext.Clients.User(targetUserId).SendAsync("NewGroupConversation", conversation);
 
     public async Task NotifyGroupUpdatedAsync(string participantUserId, ConversationDto mappedGroup)
         => await notificationHubContext.Clients.User(participantUserId).SendAsync("GroupUpdated", mappedGroup);

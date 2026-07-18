@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Social_Media_Chatting_APP_Domain.Entities;
@@ -27,45 +27,35 @@ public class AddGroupParticipantCommandHandler(
         var conversation = await conversationRepo.GetByIdAsync(request.ConversationId);
 
         if (conversation is null)
-        {
             return Error.NotFound("Conversation.NotFound", "No conversation with that Id was found");
-        }
-
 
         if (conversation.ConversationType != ConvoType.Group)
             return Error.BadRequest("Conversation.NotGroup", "This operation only applies to groups");
 
-
-        var adminCheck = GroupPermissionHelper.IsGroupAdmin(conversation, request.RequesterId.ToString());
-
-        if (adminCheck)
-        {
+        // IsGroupAdmin returns true if admin — deny if NOT admin
+        if (!GroupPermissionHelper.IsGroupAdmin(conversation, request.RequesterId.ToString()))
             return Error.Forbidden("Conversation.NotAdmin", "Only group admins can add members to the group");
-        }
 
         var friendshipRepo = unitOfWork.GetRepository<Social_Media_Chatting_APP_Domain.Entities.Friendship, Guid>();
         var newParticipantIds = request.NewParticipantId
             .Where(id => id != request.RequesterId)
             .Distinct()
             .ToList();
+
         if (newParticipantIds.Count == 0)
             return Error.BadRequest("Conversation.NoParticipants", "No valid participants to add");
+
         var newUsers = new List<AppUser>();
         foreach (var newParticipantId in newParticipantIds)
         {
             var participant = GroupPermissionHelper.IsParticipant(conversation, newParticipantId.ToString());
             if (participant)
-            {
                 return Error.BadRequest("Conversation.AlreadyMember",
                     $"User {newParticipantId} is already a member of this group");
-            }
-            //if he is not in the group, so we check first, and then we add 
 
             var user = await userManager.FindByIdAsync(newParticipantId.ToString());
             if (user is null)
-            {
                 return Error.NotFound("User.NotFound", $"User {newParticipantId} not found");
-            }
 
             var friendshipCheck =
                 await FriendshipQueryHelper.GetAsync(friendshipRepo, request.RequesterId, newParticipantId);
@@ -90,16 +80,14 @@ public class AddGroupParticipantCommandHandler(
 
         var mappedGroup = mapper.Map<ConversationDto>(conversation);
 
+        // Notify newly added members about the group
         foreach (var user in newUsers)
-        {
             await realtimeNotifier.NotifyNewGroupConversationAsync(user.Id, mappedGroup);
-        }
 
+        // Notify existing members that the group was updated
         foreach (var participant in conversation.Participants.Where(p =>
                      !newUsers.Select(u => u.Id).Contains(p.UserId)))
-        {
             await realtimeNotifier.NotifyGroupUpdatedAsync(participant.UserId, mappedGroup);
-        }
 
         return Result<ConversationDto>.Ok(mappedGroup);
     }
