@@ -2,8 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Social_Media_Chatting_APP_Persistence.DbContext;
 using Social_Media_Chatting_APP_Persistence.DI;
+using Social_Media_Chatting_APP_Presentation.Hubs;
 using Social_Media_Chatting_APP_Presentation.Infrastructure.SignalR;
 using Social_Media_Chatting_APP_Service.Common;
+using Social_Media_Chatting_APP_ServiceAbstraction;
 using Social_Media_Chatting_APP_Web.CustomMiddlewares;
 using Social_Media_Chatting_APP_Web.Extensions;
 using StackExchange.Redis;
@@ -73,6 +75,7 @@ builder.Services.AddSignalR()
 
 
 builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();
+builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
 
 #endregion
 
