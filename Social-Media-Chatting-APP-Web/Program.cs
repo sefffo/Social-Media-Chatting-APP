@@ -24,7 +24,14 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddOpenApi();
-
+builder.Services.AddCors(options => options.AddPolicy("TestWebPolicy", policy =>
+    {
+        policy.SetIsOriginAllowed(origin => origin.StartsWith("http://localhost") || origin.EndsWith(""))
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .AllowAnyHeader();
+    })
+);
 
 #region Database Connection
 
