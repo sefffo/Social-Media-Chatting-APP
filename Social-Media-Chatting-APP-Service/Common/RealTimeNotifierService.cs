@@ -24,6 +24,11 @@ public class RealTimeNotifierService : IRealtimeNotifier
         return Task.CompletedTask;
     }
 
+    public Task RemoveFromConversationGroup(Guid conversationId, string connectionId)
+    {
+        return Task.CompletedTask;
+    }
+
     public Task NotifyNewConversationAsync(string targetUserId, ConversationDto conversation)
     {
         // TODO: implement when SignalR hub is wired up
