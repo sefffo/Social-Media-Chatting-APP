@@ -603,13 +603,15 @@ public class AuthService(
             // 3. Create new Google user
             user = new AppUser
             {
-                UserName = email, // ← email not name, must be unique
+                UserName = email.Split('@')[0] + "_" + googleId[..7], 
                 Email = email,
                 DisplayName = name,
                 IsGoogleAccount = true,
                 IsOnline = false,
                 IsTwoFactorSetup = false,
-                CreatedAt = DateTime.UtcNow
+                EmailConfirmed = true,   
+                CreatedAt = DateTime.UtcNow,
+                Gender = "Other"  
             };
 
             var randomPassword = Guid.NewGuid().ToString() + "!A1";
